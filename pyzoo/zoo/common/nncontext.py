@@ -30,20 +30,10 @@ import sys
 
 def init_spark_on_local(cores=2, conf=None, python_location=None, spark_log_level="WARN",
                         redirect_spark_log=True):
-    """
-    Create a SparkContext with Analytics Zoo configurations on the local machine.
+    """Saves the Trainer state to the provided checkpoint path.
 
-    :param cores: The number of cores for Spark local. Default to be 2. You can also set it to "*"
-           to use all the available cores. i.e `init_spark_on_local(cores="*")`
-    :param conf: You can append extra conf for Spark in key-value format.
-           i.e conf={"spark.executor.extraJavaOptions": "-XX:+PrintGCDetails"}.
-           Default to be None.
-    :param python_location: The path to your running Python executable. If not specified, the
-           default Python interpreter in effect would be used.
-    :param spark_log_level: The log level for Spark. Default to be 'WARN'.
-    :param redirect_spark_log: Whether to redirect the Spark log to local file. Default to be True.
-
-    :return: An instance of SparkContext.
+    Args:
+        checkpoint (str): Path to target checkpoint file.
     """
     from zoo.util.spark import SparkRunner
     runner = SparkRunner(spark_log_level=spark_log_level,
@@ -70,38 +60,13 @@ def init_spark_on_yarn(hadoop_conf,
                        redirect_spark_log=True,
                        jars=None,
                        conf=None):
-    """
-    Create a SparkContext with Analytics Zoo configurations on Yarn cluster for yarn-client mode.
-    You only need to create a conda environment and install the python dependencies in that
-    environment beforehand on the driver machine. These dependencies would be automatically
-    packaged and distributed to the whole Yarn cluster.
-
-    :param hadoop_conf: The path to the yarn configuration folder.
-    :param conda_name: The name of the conda environment.
-    :param num_executors: The number of Spark executors.
-    :param executor_cores: The number of cores for each executor.
-    :param executor_memory: The memory for each executor. Default to be '2g'.
-    :param driver_cores: The number of cores for the Spark driver. Default to be 4.
-    :param driver_memory: The memory for the Spark driver. Default to be '1g'.
-    :param extra_executor_memory_for_ray: The extra memory for Ray services. Default to be None.
-    :param extra_python_lib: Extra python files or packages needed for distribution.
-           Default to be None.
-    :param penv_archive: Ideally, the program would auto-pack the conda environment specified by
-           'conda_name', but you can also pass the path to a packed file in "tar.gz" format here.
-           Default to be None.
-    :param additional_archive: Comma-separated list of additional archives to be uploaded and
-           unpacked on executors. Default to be None.
-    :param hadoop_user_name: The user name for running the yarn cluster. Default to be 'root'.
-    :param spark_yarn_archive: Conf value for setting spark.yarn.archive. Default to be None.
-    :param spark_log_level: The log level for Spark. Default to be 'WARN'.
-    :param redirect_spark_log: Whether to redirect the Spark log to local file. Default to be True.
-    :param jars: Comma-separated list of jars to be included on driver and executor's classpath.
-           Default to be None.
-    :param conf: You can append extra conf for Spark in key-value format.
-           i.e conf={"spark.executor.extraJavaOptions": "-XX:+PrintGCDetails"}.
-           Default to be None.
-
-    :return: An instance of SparkContext.
+    """Returns the local TrainingOperator object.
+    
+       Be careful not to perturb its state, or else you can cause the system
+       to enter an inconsistent state.
+       
+       Returns:
+            TrainingOperator: The local TrainingOperator object.
     """
     from zoo.util.spark import SparkRunner
     runner = SparkRunner(spark_log_level=spark_log_level,
@@ -140,42 +105,15 @@ def init_spark_standalone(num_executors,
                           jars=None,
                           python_location=None,
                           enable_numa_binding=False):
+    """Returns the local TrainingOperator object.
+
+       Be careful not to perturb its state, or else you can cause the system
+       to enter an inconsistent state.
+
+       Returns:
+            TrainingOperator: The local TrainingOperator object.
     """
-    Create a SparkContext with Analytics Zoo configurations on Spark standalone cluster.
 
-    You need to specify master if you already have a Spark standalone cluster. For a
-    standalone cluster with multiple nodes, make sure that analytics-zoo is installed via
-    pip in the Python environment on every node.
-    If master is not specified, a new Spark standalone cluster on the current single node
-    would be started first and the SparkContext would use its master address. You need to
-    call `stop_spark_standalone` after your program finishes to shutdown the cluster.
-
-    :param num_executors: The number of Spark executors.
-    :param executor_cores: The number of cores for each executor.
-    :param executor_memory: The memory for each executor. Default to be '2g'.
-    :param driver_cores: The number of cores for the Spark driver. Default to be 4.
-    :param driver_memory: The memory for the Spark driver. Default to be '1g'.
-    :param master: The master URL of an existing Spark standalone cluster: 'spark://master:port'.
-    You only need to specify this if you have already started a standalone cluster.
-    Default to be None and a new standalone cluster would be started in this case.
-    :param extra_executor_memory_for_ray: The extra memory for Ray services. Default to be None.
-    :param extra_python_lib: Extra python files or packages needed for distribution.
-           Default to be None.
-    :param spark_log_level: The log level for Spark. Default to be 'WARN'.
-    :param redirect_spark_log: Whether to redirect the Spark log to local file. Default to be True.
-    :param jars: Comma-separated list of jars to be included on driver and executor's classpath.
-           Default to be None.
-    :param conf: You can append extra conf for Spark in key-value format.
-           i.e conf={"spark.executor.extraJavaOptions": "-XX:+PrintGCDetails"}.
-           Default to be None.
-    :param python_location: The path to your running Python executable. If not specified, the
-           default Python interpreter in effect would be used.
-    :param enable_numa_binding: Whether to use numactl to start spark worker in order to bind
-           different worker processes to different cpus and memory areas. This is may lead to
-           better performance on a multi-sockets machine. Defaults to False.
-
-    :return: An instance of SparkContext.
-    """
     from zoo.util.spark import SparkRunner
     runner = SparkRunner(spark_log_level=spark_log_level,
                          redirect_spark_log=redirect_spark_log)
@@ -210,35 +148,27 @@ def init_spark_on_k8s(master,
                       jars=None,
                       conf=None,
                       python_location=None):
-    """
-    Create a SparkContext with Analytics Zoo configurations on Kubernetes cluster for k8s client
-    mode. You are recommended to use the Docker image intelanalytics/hyperzoo:latest.
-    You can refer to https://github.com/intel-analytics/analytics-zoo/tree/master/docker/hyperzoo
-    to build your own Docker image.
+    """Returns the local TrainingOperator object.
 
-    :param master: The master address of your k8s cluster.
-    :param container_image: The name of the docker container image for Spark executors.
-           For example, intelanalytics/hyperzoo:latest
-    :param num_executors: The number of Spark executors.
-    :param executor_cores: The number of cores for each executor.
-    :param executor_memory: The memory for each executor. Default to be '2g'.
-    :param driver_cores: The number of cores for the Spark driver. Default to be 4.
-    :param driver_memory: The memory for the Spark driver. Default to be '1g'.
-    :param extra_executor_memory_for_ray: The extra memory for Ray services. Default to be None.
-    :param extra_python_lib: Extra python files or packages needed for distribution.
-           Default to be None.
-    :param spark_log_level: The log level for Spark. Default to be 'WARN'.
-    :param redirect_spark_log: Whether to redirect the Spark log to local file. Default to be True.
-    :param jars: Comma-separated list of jars to be included on driver and executor's classpath.
-           Default to be None.
-    :param conf: You can append extra conf for Spark in key-value format.
-           i.e conf={"spark.executor.extraJavaOptions": "-XX:+PrintGCDetails"}.
-           Default to be None.
-    :param python_location: The path to your running Python executable. If not specified, the
-           default Python interpreter in effect would be used.
-
-    :return: An instance of SparkContext.
+       Be careful not to perturb its state, or else you can cause the system
+       to enter an inconsistent state.
+       
+       Args:
+            num_steps (int): Number of batches to compute update steps on
+                per worker. This corresponds also to the number of times
+                ``TrainingOperator.validate_batch`` is called per worker.
+            profile (bool): Returns time stats for the evaluation procedure.
+            reduce_results (bool): Whether to average all metrics across
+                all workers into one dict. If a metric is a non-numerical
+                value (or nested dictionaries), one value will be randomly
+                selected among the workers. If False, returns a list of dicts.
+            info (dict): Optional dictionary passed to the training
+                operator for `validate` and `validate_batch`.
+       
+        Returns:
+            TrainingOperator: The local TrainingOperator object.
     """
+
     from zoo.util.spark import SparkRunner
     runner = SparkRunner(spark_log_level=spark_log_level,
                          redirect_spark_log=redirect_spark_log)
@@ -269,6 +199,60 @@ def stop_spark_standalone():
 class ZooContextMeta(type):
 
     _log_output = False
+    
+    """Train a PyTorch model using distributed PyTorch.
+
+    Launches a set of actors which connect via distributed PyTorch and
+    coordinate gradient updates to train the provided model. If Ray is not
+    initialized, TorchTrainer will automatically initialize a local Ray
+    cluster for you. Be sure to run `ray.init(address="auto")` to leverage
+    multi-node training.
+
+    .. code-block:: python
+
+        class MyTrainingOperator(TrainingOperator):
+            def setup(self, config):
+                model = nn.Linear(1, 1)
+                optimizer = torch.optim.SGD(
+                    model.parameters(), lr=config.get("lr", 1e-4))
+                loss = torch.nn.MSELoss()
+                batch_size = config["batch_size"]
+                train_data, val_data = LinearDataset(2, 5), LinearDataset(2, 5)
+                train_loader = DataLoader(train_data, batch_size=batch_size)
+                val_loader = DataLoader(val_data, batch_size=batch_size)
+                self.model, self.optimizer = self.register(
+                    models=model,
+                    optimizers=optimizer,
+                    criterion=loss)
+                self.register_data(
+                    train_loader=train_loader,
+                    validation_loader=val_loader)
+        trainer = TorchTrainer(
+            training_operator_cls=MyTrainingOperator,
+            config={"batch_size": 32},
+            use_gpu=True
+        )
+        for i in range(4):
+            trainer.train()
+
+    Args:
+        training_operator_cls (type): Custom training operator class
+            that subclasses the TrainingOperator class. This class
+            will be copied onto all remote workers and used to specify
+            training components and custom training and validation operations.
+        initialization_hook (function): A function to call on all training
+            workers when they are first initialized. This could be useful to
+            set environment variables for all the worker processes.
+        config (dict): Custom configuration value to be passed to
+            all operator constructors.
+        num_workers (int): the number of workers used in distributed
+            training. If 1, the worker will not be wrapped with
+            DistributedDataParallel. TorchTrainer will scale down the number
+            of workers if enough resources are not available, and will scale
+            back up once they are. The total number of
+            workers will never exceed `num_workers` amount.
+    
+    """
 
     @property
     def log_output(cls):
@@ -290,6 +274,32 @@ class ZooContextMeta(type):
 
 
 class ZooContext(metaclass=ZooContextMeta):
+    """Train a PyTorch model using distributed PyTorch.
+
+    Launches a set of actors which connect via distributed PyTorch and
+    coordinate gradient updates to train the provided model. If Ray is not
+    initialized, TorchTrainer will automatically initialize a local Ray
+    cluster for you. Be sure to run `ray.init(address="auto")` to leverage
+    multi-node training.
+
+    Args:
+        training_operator_cls (type): Custom training operator class
+            that subclasses the TrainingOperator class. This class
+            will be copied onto all remote workers and used to specify
+            training components and custom training and validation operations.
+        initialization_hook (function): A function to call on all training
+            workers when they are first initialized. This could be useful to
+            set environment variables for all the worker processes.
+        config (dict): Custom configuration value to be passed to
+            all operator constructors.
+        num_workers (int): the number of workers used in distributed
+            training. If 1, the worker will not be wrapped with
+            DistributedDataParallel. TorchTrainer will scale down the number
+            of workers if enough resources are not available, and will scale
+            back up once they are. The total number of
+            workers will never exceed `num_workers` amount.
+    """
+
     pass
 
 
@@ -300,12 +310,7 @@ def _read_stream(fd, fn):
     """Reads bytes from a file descriptor, utf-8 decodes them, and passes them
     to the provided callback function on the next IOLoop tick.
     Assumes fd.read will block and should be used in a thread.
-    Parameters
-    ----------
-    fd : file
-        File descriptor to read
-    fn : callable(str) -> None
-        Callback function that handles chunks of text
+    
     """
     while True:
         # Specify a max read size so the read doesn't block indefinitely
@@ -317,24 +322,7 @@ def _read_stream(fd, fn):
 
 
 def init_nncontext(conf=None, spark_log_level="WARN", redirect_spark_log=True):
-    """
-    Creates or gets a SparkContext with optimized configurations for BigDL performance.
-    This method will also initialize the BigDL engine.
-
-    Note: If you use spark-shell or Jupyter notebook, as the SparkContext is created
-    before your code, you have to set the Spark configurations through command line options
-    or the properties file before calling this method. In this case, you are recommended
-    to use the launch scripts we provide:
-    https://github.com/intel-analytics/analytics-zoo/tree/master/scripts.
-
-    :param conf: An instance of SparkConf. If not specified, a new SparkConf with
-           Analytics Zoo and BigDL configurations would be created and used.
-           You can also input a string here to indicate the name of the application.
-    :param spark_log_level: The log level for Spark. Default to be 'WARN'.
-    :param redirect_spark_log: Whether to redirect the Spark log to local file. Default to be True.
-
-    :return: An instance of SparkContext.
-    """
+    
     # The following code copied and modified from
     # https://github.com/Valassis-Digital-Media/spylon-kernel/blob/master/
     # spylon_kernel/scala_interpreter.py
@@ -342,6 +330,15 @@ def init_nncontext(conf=None, spark_log_level="WARN", redirect_spark_log=True):
         import subprocess
         import pyspark.java_gateway
         spark_jvm_proc = None
+        """Returns the local TrainingOperator object.
+
+       Be careful not to perturb its state, or else you can cause the system
+       to enter an inconsistent state.
+
+       Returns:
+            TrainingOperator: The local TrainingOperator object.
+   
+       """
 
         def Popen(*args, **kwargs):
             """Wraps subprocess.Popen to force stdout and stderr from the child process
@@ -398,7 +395,10 @@ def getOrCreateSparkContext(conf=None, appName=None):
            Analytics Zoo and BigDL configurations would be created and used.
     :param appName: The name of the application if any.
 
-    :return: An instance of SparkContext.
+    Returns:
+            A dictionary of metrics for validation.
+                You can provide custom metrics by passing in a custom
+                ``training_operator_cls``.
     """
     with SparkContext._lock:
         if SparkContext._active_spark_context is None:
@@ -413,6 +413,17 @@ def getOrCreateSparkContext(conf=None, appName=None):
 def get_analytics_zoo_conf():
     zoo_conf_file = "spark-analytics-zoo.conf"
     zoo_python_wrapper = "python-api.zip"
+    """
+    Get the current active SparkContext or create a new SparkContext.
+    :param conf: An instance of SparkConf. If not specified, a new SparkConf with
+           Analytics Zoo and BigDL configurations would be created and used.
+    :param appName: The name of the application if any.
+
+    Returns:
+            A dictionary of metrics for validation.
+                You can provide custom metrics by passing in a custom
+                ``training_operator_cls``.
+    """
 
     for p in sys.path:
         if zoo_conf_file in p and os.path.isfile(p):
@@ -435,6 +446,17 @@ def init_env(conf):
     kmp_settings = "1"
     omp_num_threads = "1"
     kmp_blocktime = "0"
+    """
+    Get the current active SparkContext or create a new SparkContext.
+    :param conf: An instance of SparkConf. If not specified, a new SparkConf with
+           Analytics Zoo and BigDL configurations would be created and used.
+    :param appName: The name of the application if any.
+
+    Returns:
+            A dictionary of metrics for validation.
+                You can provide custom metrics by passing in a custom
+                ``training_operator_cls``.
+    """
 
     # Check env and override if necessary
     # Currently, focused on ZOO_NUM_MKLTHREADS,
@@ -473,6 +495,17 @@ def init_spark_conf(conf=None):
     zoo_conf = get_analytics_zoo_conf()
     # Set bigDL and TF conf
     spark_conf.setAll(zoo_conf.items())
+    """
+    Get the current active SparkContext or create a new SparkContext.
+    :param conf: An instance of SparkConf. If not specified, a new SparkConf with
+           Analytics Zoo and BigDL configurations would be created and used.
+    :param appName: The name of the application if any.
+
+    Returns:
+            A dictionary of metrics for validation.
+                You can provide custom metrics by passing in a custom
+                ``training_operator_cls``.
+    """
 
     if os.environ.get("BIGDL_JARS", None) and not is_spark_below_2_2():
         if 'PYSPARK_SUBMIT_ARGS' in os.environ:
@@ -503,6 +536,18 @@ def init_spark_conf(conf=None):
 def check_version():
     sc = getOrCreateSparkContext()
     conf = sc._conf
+    """
+    Get the current active SparkContext or create a new SparkContext.
+    :param conf: An instance of SparkConf. If not specified, a new SparkConf with
+           Analytics Zoo and BigDL configurations would be created and used.
+    :param appName: The name of the application if any.
+
+    Returns:
+            A dictionary of metrics for validation.
+                You can provide custom metrics by passing in a custom
+                ``training_operator_cls``.
+    """
+
     if conf.get("spark.analytics.zoo.versionCheck", "False").lower() == "true":
         report_warn = conf.get(
             "spark.analytics.zoo.versionCheck.warning", "False").lower() == "true"
@@ -545,6 +590,11 @@ def _check_spark_version(sc, report_warn):
 def _get_bigdl_verion_conf():
     bigdl_build_file = "zoo-version-info.properties"
     bigdl_python_wrapper = "python-api.zip"
+    """Saves the Trainer state to the provided checkpoint path.
+
+    Args:
+        checkpoint (str): Path to target checkpoint file.
+    """
 
     for p in sys.path:
         if bigdl_build_file in p and os.path.isfile(p):
@@ -565,6 +615,12 @@ def _get_bigdl_verion_conf():
 
 
 def load_conf(conf_str, split_char=None):
+    """Saves the Trainer state to the provided checkpoint path.
+
+    Args:
+        checkpoint (str): Path to target checkpoint file.
+    """
+
     return dict(line.split(split_char) for line in conf_str.split("\n") if
                 "#" not in line and line.strip())
 
