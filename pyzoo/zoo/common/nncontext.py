@@ -33,6 +33,7 @@ def init_spark_on_local(cores=2, conf=None, python_location=None, spark_log_leve
     """Saves the Trainer state to the provided checkpoint path.
 
     Args:
+
         checkpoint (str): Path to target checkpoint file.
     """
     from zoo.util.spark import SparkRunner
