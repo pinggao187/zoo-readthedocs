@@ -1,3 +1,5 @@
+
+#
 # Copyright 2018 Analytics Zoo Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,231 +14,385 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from bigdl.transform.vision.image import ImageFrame
+
 from bigdl.util.common import *
-from zoo.common.utils import callZooFunc
+from zoo.feature.common import Preprocessing
 
-def is_local(self):
-        """
-        whether this is a LocalImageSet
-        Create a ImageSet from rdds of ndarray.
+if sys.version >= '3':
+    long = int
+    unicode = str
 
-        :param image_rdd: a rdd of ndarray, each ndarray should has dimension of 3 or 4 (3D images)
-        :param label_rdd: a rdd of ndarray
-        :return: a DistributedImageSet
 
-        >>> import numpy as np
-        >>> from bigdl.util.common import callBigDlFunc
-        >>> from numpy.testing import assert_allclose
-        >>> np.random.seed(123)
-        >>> sample = Sample.from_ndarray(np.random.random((2,3)), np.random.random((2,3)))
-        >>> sample_back = callBigDlFunc("float", "testSample", sample)
-        >>> assert_allclose(sample.features[0].to_ndarray(), sample_back.features[0].to_ndarray())
-        >>> assert_allclose(sample.label.to_ndarray(), sample_back.label.to_ndarray())
-        >>> expected_feature_storage = np.array(([[0.69646919, 0.28613934, 0.22685145], [0.55131477, 0.71946895, 0.42310646]]))
-        >>> expected_feature_shape = np.array([2, 3])
-        >>> expected_label_storage = np.array(([[0.98076421, 0.68482971, 0.48093191], [0.39211753, 0.343178, 0.72904968]]))
-        >>> expected_label_shape = np.array([2, 3])
-        >>> assert_allclose(sample.features[0].storage, expected_feature_storage, rtol=1e-6, atol=1e-6)
-        >>> assert_allclose(sample.features[0].shape, expected_feature_shape)
-        """
-
-        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
-
-class ImageSet(JavaValue):
+class ImagePreprocessing(Preprocessing):
     """
-    ImageSet wraps a set of ImageFeature
+    ImagePreprocessing is a transformer that transform ImageFeature
+    """
+    def __init__(self, bigdl_type="float", *args):
+        super(ImagePreprocessing, self).__init__(bigdl_type, *args)
+
+
+class ImageBytesToMat(ImagePreprocessing):
+    """
+    Transform byte array(original image file in byte) to OpenCVMat
+
+    :param byte_key: key that maps byte array
+    :param image_codec: specifying the color type of a loaded image, same as in OpenCV.imread.
+     By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED
+    """
+    def __init__(self, byte_key="bytes", image_codec=-1, bigdl_type="float"):
+        super(ImageBytesToMat, self).__init__(bigdl_type, byte_key, image_codec)
+
+
+class ImagePixelBytesToMat(ImagePreprocessing):
+    """
+    Transform byte array(pixels in byte) to OpenCVMat
+
+    :param byte_key: key that maps byte array
+    """
+    def __init__(self, byte_key="bytes", bigdl_type="float"):
+        super(ImagePixelBytesToMat, self).__init__(bigdl_type, byte_key)
+
+
+class ImageResize(ImagePreprocessing):
+    """
+    Resize image
+
+    :param resize_h: height after resize
+    :param resize_w: width after resize
+    :param resize_mode: if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR,Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
+    :param use_scale_factor: if true, scale factor fx and fy is used, fx = fy = 0 note that the result of the following are different
+
+    Imgproc.resize(mat, mat, new Size(resizeWH, resizeWH), 0, 0, Imgproc.INTER_LINEAR)
+    Imgproc.resize(mat, mat, new Size(resizeWH, resizeWH))
+    """
+    def __init__(self, resize_h, resize_w, resize_mode=1, use_scale_factor=True,
+                 bigdl_type="float"):
+        super(ImageResize, self).__init__(bigdl_type, resize_h, resize_w,
+                                          resize_mode, use_scale_factor)
+
+
+class ImageBrightness(ImagePreprocessing):
+    """
+    adjust the image brightness
+
+    :param deltaLow: brightness parameter: low bound
+    :param deltaHigh: brightness parameter: high bound
+    """
+    def __init__(self, delta_low, delta_high, bigdl_type="float"):
+        super(ImageBrightness, self).__init__(bigdl_type, float(delta_low), float(delta_high))
+
+
+class ImageChannelNormalize(ImagePreprocessing):
+    """
+    image channel normalize
+
+    :param mean_r: mean value in R channel
+    :param mean_g: mean value in G channel
+    :param meanB_b: mean value in B channel
+    :param std_r: std value in R channel
+    :param std_g: std value in G channel
+    :param std_b: std value in B channel
+    """
+    def __init__(self, mean_r, mean_g, mean_b, std_r=1.0,
+                 std_g=1.0, std_b=1.0, bigdl_type="float"):
+        super(ImageChannelNormalize, self).__init__(bigdl_type, float(mean_r), float(mean_g),
+                                                    float(mean_b), float(std_r), float(std_g),
+                                                    float(std_b))
+
+
+class PerImageNormalize(ImagePreprocessing):
+    """
+    Normalizes the norm or value range per image, similar to opencv::normalize
+    https://docs.opencv.org/ref/master/d2/de8/group__core__array.html
+
+    #ga87eef7ee3970f86906d69a92cbf064bd
+    ImageNormalize normalizes scale and shift the input features. Various normalize
+    methods are supported,
+    Eg. NORM_INF, NORM_L1, NORM_L2 or NORM_MINMAX
+    Pleas notice it's a per image normalization.
+
+    :param min: lower range boundary in case of the range normalization or
+    norm value to normalize
+    :param max: upper range boundary in case of the range normalization.It is not used for the norm normalization.
+    :param norm_type: normalization type, see opencv:NormTypes.
+    https://docs.opencv.org/ref/master/d2/de8/group__core__array.html
+    #gad12cefbcb5291cf958a85b4b67b6149f
+    Default Core.NORM_MINMAX
+    """
+    def __init__(self, min, max, norm_type=32, bigdl_type="float"):
+        super(PerImageNormalize, self).__init__(bigdl_type, float(min), float(max), norm_type)
+
+
+class ImageMatToTensor(ImagePreprocessing):
+    """
+    MatToTensor
+
+    :param toRGB: BGR to RGB (default is BGR)
+    :param tensorKey: key to store transformed tensor
+    :param format: DataFormat.NCHW or DataFormat.NHWC
+    """
+    def __init__(self, to_RGB=False, tensor_key="imageTensor",
+                 share_buffer=True, format="NCHW", bigdl_type="float"):
+        super(ImageMatToTensor, self).__init__(bigdl_type, to_RGB, tensor_key,
+                                               share_buffer, format)
+
+
+class ImageSetToSample(ImagePreprocessing):
+    """
+    transform imageframe to samples
+
+    :param input_keys: keys that maps inputs (each input should be a tensor)
+    :param target_keys: keys that maps targets (each target should be a tensor)
+    :param sample_key: key to store sample
+    """
+    def __init__(self, input_keys=["imageTensor"], target_keys=["label"],
+                 sample_key="sample", bigdl_type="float"):
+        super(ImageSetToSample, self).__init__(bigdl_type, input_keys, target_keys, sample_key)
+
+
+class ImageHue(ImagePreprocessing):
+    """
+    adjust the image hue
+
+    :param deltaLow: hue parameter: low bound
+    :param deltaHigh: hue parameter: high bound
+    """
+    def __init__(self, delta_low, delta_high, bigdl_type="float"):
+        super(ImageHue, self).__init__(bigdl_type, float(delta_low), float(delta_high))
+
+
+class ImageSaturation(ImagePreprocessing):
+    """
+    adjust the image Saturation
+
+    :param deltaLow brightness parameter: low bound
+    :param deltaHigh brightness parameter: high bound
+    """
+    def __init__(self, delta_low, delta_high, bigdl_type="float"):
+        super(ImageSaturation, self).__init__(bigdl_type, float(delta_low), float(delta_high))
+
+
+class ImageChannelOrder(ImagePreprocessing):
+    """
+    random change the channel of an image
+    """
+    def __init__(self, bigdl_type="float"):
+        super(ImageChannelOrder, self).__init__(bigdl_type)
+
+
+class ImageColorJitter(ImagePreprocessing):
+    """
+    Random adjust brightness, contrast, hue, saturation
+
+    :param brightness_prob: probability to adjust brightness
+    :param brightness_delta: brightness parameter
+    :param contrast_prob: probability to adjust contrast
+    :param contrast_lower: contrast lower parameter
+    :param contrast_upper: contrast upper parameter
+    :param hue_prob: probability to adjust hue
+    :param hue_delta: hue parameter
+    :param saturation_prob: probability to adjust saturation
+    :param saturation_lower: saturation lower parameter
+    :param saturation_upper: saturation upper parameter
+    :param random_order_prob: random order for different operation
+    :param shuffle:  shuffle the transformers
+    """
+    def __init__(self, brightness_prob=0.5,
+                 brightness_delta=32.0,
+                 contrast_prob=0.5,
+                 contrast_lower=0.5,
+                 contrast_upper=1.5,
+                 hue_prob=0.5,
+                 hue_delta=18.0,
+                 saturation_prob=0.5,
+                 saturation_lower=0.5,
+                 saturation_upper=1.5,
+                 random_order_prob=0.0,
+                 shuffle=False,
+                 bigdl_type="float"):
+        super(ImageColorJitter, self).__init__(bigdl_type,
+                                               float(brightness_prob), float(brightness_delta),
+                                               float(contrast_prob), float(contrast_lower),
+                                               float(contrast_upper), float(hue_prob),
+                                               float(hue_delta), float(saturation_prob),
+                                               float(saturation_lower), float(saturation_upper),
+                                               float(random_order_prob), shuffle)
+
+
+class ImageAspectScale(ImagePreprocessing):
+    """
+    Resize the image, keep the aspect ratio. scale according to the short edge
+
+    :param min_size: scale size, apply to short edge
+    :param scale_multiple_of: make the scaled size multiple of some value
+    :param max_size: max size after scale
+    :param resize_mode: if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR, Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
+    :param use_scale_factor: if true, scale factor fx and fy is used, fx = fy = 0
+    :aram min_scale: control the minimum scale up for image
     """
 
-    def __init__(self, jvalue, bigdl_type="float"):
-        self.value = jvalue
-        self.bigdl_type = bigdl_type
-        if self.is_local():
-            self.image_set = LocalImageSet(jvalue=self.value)
-        else:
-            self.image_set = DistributedImageSet(jvalue=self.value)
-
-    def is_local(self):
-        """
-        whether this is a LocalImageSet
-        """
-        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
-
-    def is_distributed(self):
-        """
-        whether this is a DistributedImageSet
-        """
-        return callZooFunc(self.bigdl_type, "isDistributedImageSet", self.value)
-
-    @property
-    def label_map(self):
-        """
-        :return: the labelMap of this ImageSet, None if the ImageSet does not have a labelMap
-        """
-        return callZooFunc(self.bigdl_type, "imageSetGetLabelMap", self.value)
-
-    @classmethod
-    def read(cls, path, sc=None, min_partitions=1, resize_height=-1,
-             resize_width=-1, image_codec=-1, with_label=False, one_based_label=True,
-             bigdl_type="float"):
-        """
-        Read images as Image Set
-
-        :param path: path to read images
-
-        if sc is defined, path can be local or HDFS. Wildcard character are supported.
-
-        if withLabel is set to true, path should be a directory that have two levels. The
-        first level is class folders, and the second is images. All images belong to a same
-        class should be put into the same class folder. So each image in the path is labeled by the
-        folder it belongs.
-
-        :param sc: SparkContext
-        :param min_partitions: A suggestion value of the minimal splitting number for input data.
-        :param resize_height: height after resize, by default is -1 which will not resize the image
-        :param resize_width: width after resize, by default is -1 which will not resize the image
-        :param image_codec: specifying the color type of a loaded image, same as in OpenCV.imread.By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED(-1)
-        :param with_label: whether to treat folders in the path as image classification labels and read the labels into ImageSet.
-        :param one_based_label: whether to use one based label
-        :return: ImageSet
-        """
-        return ImageSet(jvalue=callZooFunc(bigdl_type, "readImageSet", path,
-                                           sc, min_partitions, resize_height,
-                                           resize_width, image_codec, with_label,
-                                           one_based_label))
-
-    @classmethod
-    def from_image_frame(cls, image_frame, bigdl_type="float"):
-        return ImageSet(jvalue=callZooFunc(bigdl_type, "imageFrameToImageSet", image_frame))
-
-    @classmethod
-    def from_rdds(cls, image_rdd, label_rdd=None, bigdl_type="float"):
-        """
-        Create a ImageSet from rdds of ndarray.
-
-        :param image_rdd: a rdd of ndarray, each ndarray should has dimension of 3 or 4 (3D images)
-        :param label_rdd: a rdd of ndarray
-        :return: a DistributedImageSet
-        """
-        image_rdd = image_rdd.map(lambda x: JTensor.from_ndarray(x))
-        if label_rdd is not None:
-            label_rdd = label_rdd.map(lambda x: JTensor.from_ndarray(x))
-        return ImageSet(jvalue=callZooFunc(bigdl_type, "createDistributedImageSet",
-                                           image_rdd, label_rdd), bigdl_type=bigdl_type)
-
-    def transform(self, transformer):
-        """
-        transformImageSet
-        """
-        return ImageSet(callZooFunc(self.bigdl_type, "transformImageSet",
-                                    transformer, self.value), self.bigdl_type)
-
-    def get_image(self, key="floats", to_chw=True):
-        """
-        get image from ImageSet
-        """
-        return self.image_set.get_image(key, to_chw)
-
-    def get_label(self):
-        """
-        get label from ImageSet
-        """
-        return self.image_set.get_label()
-
-    def get_predict(self, key="predict"):
-        """
-        get prediction from ImageSet
-        """
-        return self.image_set.get_predict(key)
-
-    def to_image_frame(self, bigdl_type="float"):
-        return ImageFrame(callZooFunc(bigdl_type, "imageSetToImageFrame", self.value), bigdl_type)
+    def __init__(self, min_size, scale_multiple_of=1, max_size=1000,
+                 resize_mode=1, use_scale_factor=True, min_scale=-1.0,
+                 bigdl_type="float"):
+        super(ImageAspectScale, self).__init__(bigdl_type,
+                                               min_size, scale_multiple_of, max_size,
+                                               resize_mode, use_scale_factor, min_scale)
 
 
-class LocalImageSet(ImageSet):
+class ImageRandomAspectScale(ImagePreprocessing):
     """
-    LocalImageSet wraps a list of ImageFeature
+    resize the image by randomly choosing a scale
+
+    :param scales: array of scale options that for random choice
+    :param scaleMultipleOf: Resize test images so that its width and height are multiples of
+    :param maxSize: Max pixel size of the longest side of a scaled input image
+    """
+    def __init__(self, scales, scale_multiple_of=1, max_size=1000, bigdl_type="float"):
+        super(ImageRandomAspectScale, self).__init__(bigdl_type,
+                                                     scales, scale_multiple_of, max_size)
+
+
+class ImagePixelNormalize(ImagePreprocessing):
+    """
+    Pixel level normalizer, data(i) = data(i) - mean(i)
+
+    :param means: pixel level mean, following H * W * C order
     """
 
-    def __init__(self, image_list=None, label_list=None, jvalue=None, bigdl_type="float"):
-        assert jvalue or image_list, "jvalue and image_list cannot be None in the same time"
-        if jvalue:
-            self.value = jvalue
-        else:
-            # init from image ndarray list and label rdd(optional)
-            image_tensor_list = list(map(lambda image: JTensor.from_ndarray(image), image_list))
-            label_tensor_list = list(map(lambda label: JTensor.from_ndarray(label), label_list)) \
-                if label_list else None
-            self.value = callZooFunc(bigdl_type, JavaValue.jvm_class_constructor(self),
-                                     image_tensor_list, label_tensor_list)
-        self.bigdl_type = bigdl_type
-
-    def get_image(self, key="floats", to_chw=True):
-        """
-        get image list from ImageSet
-        """
-        tensors = callZooFunc(self.bigdl_type, "localImageSetToImageTensor",
-                              self.value, key, to_chw)
-        return list(map(lambda tensor: tensor.to_ndarray(), tensors))
-
-    def get_label(self):
-        """
-        get label list from ImageSet
-        """
-        labels = callZooFunc(self.bigdl_type, "localImageSetToLabelTensor", self.value)
-        return map(lambda tensor: tensor.to_ndarray(), labels)
-
-    def get_predict(self, key="predict"):
-        """
-        get prediction list from ImageSet
-        """
-        predicts = callZooFunc(self.bigdl_type, "localImageSetToPredict", self.value, key)
-        return list(map(lambda predict:
-                        (predict[0], list(map(lambda x: x.to_ndarray(), predict[1]))) if predict[1]
-                        else (predict[0], None), predicts))
+    def __init__(self, means, bigdl_type="float"):
+        super(ImagePixelNormalize, self).__init__(bigdl_type, means)
 
 
-class DistributedImageSet(ImageSet):
+class ImageRandomCrop(ImagePreprocessing):
     """
-    DistributedImageSet wraps an RDD of ImageFeature
+    Random crop a `cropWidth` x `cropHeight` patch from an image.
+    The patch size should be less than the image size.
+
+    :param crop_width: width after crop
+    :param crop_height: height after crop
+    :param is_clip whether: to clip the roi to image boundaries
     """
 
-    def __init__(self, image_rdd=None, label_rdd=None, jvalue=None, bigdl_type="float"):
-        assert jvalue or image_rdd, "jvalue and image_rdd cannot be None in the same time"
-        if jvalue:
-            self.value = jvalue
-        else:
-            # init from image ndarray rdd and label rdd(optional)
-            image_tensor_rdd = image_rdd.map(lambda image: JTensor.from_ndarray(image))
-            label_tensor_rdd = label_rdd.map(lambda label: JTensor.from_ndarray(label)) \
-                if label_rdd else None
-            self.value = callZooFunc(bigdl_type, JavaValue.jvm_class_constructor(self),
-                                     image_tensor_rdd, label_tensor_rdd)
-        self.bigdl_type = bigdl_type
+    def __init__(self, crop_width, crop_height, is_clip=True, bigdl_type="float"):
+        super(ImageRandomCrop, self).__init__(bigdl_type,
+                                              crop_width, crop_height, is_clip)
 
-    def get_image(self, key="floats", to_chw=True):
-        """
-        get image rdd from ImageSet
-        """
-        tensor_rdd = callZooFunc(self.bigdl_type, "distributedImageSetToImageTensorRdd",
-                                 self.value, key, to_chw)
-        return tensor_rdd.map(lambda tensor: tensor.to_ndarray())
 
-    def get_label(self):
-        """
-        get label rdd from ImageSet
-        """
-        tensor_rdd = callZooFunc(self.bigdl_type, "distributedImageSetToLabelTensorRdd",
-                                 self.value)
-        return tensor_rdd.map(lambda tensor: tensor.to_ndarray())
+class ImageCenterCrop(ImagePreprocessing):
+    """
+    Crop a `cropWidth` x `cropHeight` patch from center of image.
+    The patch size should be less than the image size.
 
-    def get_predict(self, key="predict"):
-        """
-        get prediction rdd from ImageSet
-        """
-        predicts = callZooFunc(self.bigdl_type, "distributedImageSetToPredict", self.value, key)
-        return predicts.map(lambda predict:
-                            (predict[0],
-                             list(map(lambda x: x.to_ndarray(), predict[1]))) if predict[1]
-                            else (predict[0], None))
+    :param crop_width: width after crop
+    :param crop_height: height after crop
+    :param is_clip:  clip cropping box boundary
+    """
 
+    def __init__(self, crop_width, crop_height, is_clip=True, bigdl_type="float"):
+        super(ImageCenterCrop, self).__init__(bigdl_type,
+                                              crop_width, crop_height, is_clip)
+
+
+class ImageFixedCrop(ImagePreprocessing):
+    """
+    Crop a fixed area of image
+
+    :param x1: start in width
+    :param y1: start in height
+    :param x2: end in width
+    :param y2: end in height
+    :param normalized: whether args are normalized, i.e. in range [0, 1]
+    :param is_clip: whether to clip the roi to image boundaries
+    """
+
+    def __init__(self, x1, y1, x2, y2, normalized=True, is_clip=True, bigdl_type="float"):
+        super(ImageFixedCrop, self).__init__(bigdl_type,
+                                             x1, y1, x2, y2, normalized, is_clip)
+
+
+class ImageExpand(ImagePreprocessing):
+    """
+    expand image, fill the blank part with the meanR, meanG, meanB
+
+    :param means_r: means in R channel
+    :param means_g: means in G channel
+    :param means_b: means in B channel
+    :param min_expand_ratio: min expand ratio
+    :param max_expand_ratio: max expand ratio
+    """
+
+    def __init__(self, means_r=123, means_g=117, means_b=104,
+                 min_expand_ratio=1.0,
+                 max_expand_ratio=4.0, bigdl_type="float"):
+        super(ImageExpand, self).__init__(bigdl_type, means_r, means_g, means_b,
+                                          min_expand_ratio, max_expand_ratio)
+
+
+class ImageFiller(ImagePreprocessing):
+    """
+    Fill part of image with certain pixel value
+
+    :param start_x: start x ratio
+    :param start_y: start y ratio
+    :param end_x: end x ratio
+    :param end_y: end y ratio
+    :param value: filling value
+    """
+
+    def __init__(self, start_x, start_y, end_x, end_y, value=255, bigdl_type="float"):
+        super(ImageFiller, self).__init__(bigdl_type, start_x, start_y,
+                                          end_x, end_y, value)
+
+
+class ImageHFlip(ImagePreprocessing):
+    """
+    Flip the image horizontally
+    """
+
+    def __init__(self, bigdl_type="float"):
+        super(ImageHFlip, self).__init__(bigdl_type)
+
+
+class ImageMirror(ImagePreprocessing):
+    """
+    Flip the image horizontally and vertically
+    """
+    def __init__(self, bigdl_type="float"):
+        super(ImageMirror, self).__init__(bigdl_type)
+
+
+class ImageFeatureToTensor(Preprocessing):
+    """
+    a Transformer that convert ImageFeature to a Tensor.
+    """
+    def __init__(self, bigdl_type="float"):
+        super(ImageFeatureToTensor, self).__init__(bigdl_type)
+
+
+class ImageFeatureToSample(Preprocessing):
+    """
+    A transformer that get Sample from ImageFeature.
+    """
+    def __init__(self, bigdl_type="float"):
+        super(ImageFeatureToSample, self).__init__(bigdl_type)
+
+
+class RowToImageFeature(Preprocessing):
+    """
+    a Transformer that converts a Spark Row to a BigDL ImageFeature.
+    """
+    def __init__(self, bigdl_type="float"):
+        super(RowToImageFeature, self).__init__(bigdl_type)
+
+
+class ImageRandomPreprocessing(Preprocessing):
+    """
+    Randomly apply the preprocessing to some of the input ImageFeatures, with probability specified.
+    E.g. if prob = 0.5, the preprocessing will apply to half of the input ImageFeatures.
+
+    :param preprocessing: preprocessing to apply.
+    :param prob: probability to apply the preprocessing action.
+    """
+
+    def __init__(self, preprocessing, prob, bigdl_type="float"):
+        super(ImageRandomPreprocessing, self).__init__(bigdl_type, preprocessing, float(prob))
