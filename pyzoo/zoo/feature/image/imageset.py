@@ -97,7 +97,8 @@ class ImageSet(JavaValue):
         :param resize_height: height after resize, by default is -1 which will not resize the image
         :param resize_width: width after resize, by default is -1 which will not resize the image
         :param image_codec: specifying the color type of a loaded image, same as in OpenCV.imread.By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED(-1)
-        :param with_label: whether to treat folders in the path as image classification labels and read the labels into ImageSet.
+        :param with_label: whether to treat folders in the path as image classification 
+                           labels and read the labels into ImageSet.
         :param one_based_label: whether to use one based label
         :return: ImageSet
         """
