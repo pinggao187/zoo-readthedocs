@@ -6,11 +6,3 @@ tensorflow_gan==2.0.0
 tensorflow-hub==0.8.0
 transformers==2.4.1
 bigdl==0.11.1
-gym
-torch==1.4.0
-torchvision==0.3.0
-ray[tune]
-ray[rllib]
-ray==0.8.4
-xgboost==1.1.1
-onnx==1.6.0
