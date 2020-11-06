@@ -7,6 +7,8 @@ bigdl==0.11.1
 gym==0.17.1
 torch==1.4.0
 torchvision==0.3.0
+ray[tune]
+gluonnlp
 ray==0.8.4
 xgboost==1.1.1
 onnx==1.6.0
