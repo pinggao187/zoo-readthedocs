@@ -7,4 +7,3 @@ gluonnlp
 ray==0.8.4
 sphinx-copybutton
 sphinx-jsonschema
-sphinx-version-warning
