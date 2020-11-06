@@ -1,17 +1,10 @@
-scikit-learn==0.20.2
 nlp-architect==0.5.4
 tensorflow==1.15.2
 bert-tensorflow==1.0.0
-transformers==2.4.1
 bigdl==0.11.1
-gym==0.17.1
-torch==1.4.0
 ray[tune]
 gluonnlp
 ray==0.8.4
-onnx==1.6.0
-mxnet==1.6.0
 sphinx-copybutton
-sphinx-click
 sphinx-jsonschema
 
