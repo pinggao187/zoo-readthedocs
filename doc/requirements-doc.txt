@@ -5,6 +5,9 @@ bigdl==0.11.1
 ray[tune]
 gluonnlp
 ray==0.8.4
+onnx==1.6.0
+mxnet==1.6.0
+featuretools==0.13.4
 sphinx-copybutton
 sphinx-jsonschema
 sphinx-click
