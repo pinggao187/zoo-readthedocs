@@ -220,14 +220,31 @@ class ImageColorJitter(ImagePreprocessing):
 
 class ImageAspectScale(ImagePreprocessing):
     """
-    Resize the image, keep the aspect ratio. scale according to the short edge
+    Resize the image, keep the aspect ratio. scale according to the short edge.Randomly apply the preprocessing to some of the input ImageFeatures, with probability specified.E.g. if prob = 0.5, the preprocessing will apply to half of the input ImageFeatures.
 
     :param min_size: scale size, apply to short edge
     :param scale_multiple_of: make the scaled size multiple of some value
     :param max_size: max size after scale
     :param resize_mode: if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR, Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
     :param use_scale_factor: if true, scale factor fx and fy is used, fx = fy = 0
-    :aram min_scale: control the minimum scale up for image
+    :param min_scale: control the minimum scale up for image
+    :return: a DistributedImageSet
+
+    >>> import numpy as np
+    >>> from bigdl.util.common import callBigDlFunc
+    >>> from numpy.testing import assert_allclose
+    >>> np.random.seed(123)
+    >>> sample = Sample.from_ndarray(np.random.random((2,3)), np.random.random((2,3)))
+    >>> sample_back = callBigDlFunc("float", "testSample", sample)
+    >>> assert_allclose(sample.features[0].to_ndarray(), sample_back.features[0].to_ndarray())
+    >>> assert_allclose(sample.label.to_ndarray(), sample_back.label.to_ndarray())
+    >>> expected_feature_storage = np.array(([[0.69646919, 0.28613934, 0.22685145], [0.55131477, 0.71946895, 0.42310646]]))
+    >>> expected_feature_shape = np.array([2, 3])
+    >>> expected_label_storage = np.array(([[0.98076421, 0.68482971, 0.48093191], [0.39211753, 0.343178, 0.72904968]]))
+    >>> expected_label_shape = np.array([2, 3])
+    >>> assert_allclose(sample.features[0].storage, expected_feature_storage, rtol=1e-6, atol=1e-6)
+    >>> assert_allclose(sample.features[0].shape, expected_feature_shape)
+
     """
 
     def __init__(self, min_size, scale_multiple_of=1, max_size=1000,
@@ -237,6 +254,18 @@ class ImageAspectScale(ImagePreprocessing):
                                                min_size, scale_multiple_of, max_size,
                                                resize_mode, use_scale_factor, min_scale)
 
+    def is_local(self):
+        """
+        whether this is a LocalImageSet
+        Create a ImageSet from rdds of ndarray.
+
+        :param image_rdd: a rdd of ndarray, each ndarray should has dimension of 3 or 4 (3D images)
+        :param label_rdd: a rdd of ndarray
+        :return: a DistributedImageSet
+
+        """
+
+        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
 
 class ImageRandomAspectScale(ImagePreprocessing):
     """

@@ -1,7 +1,7 @@
-zoo.feature package
+Feature API Documentation
 =========================
 
-zoo.feature.image.imagePreprocessing module
+imagePreprocessing 
 -------------------------------------------
 
 .. automodule:: zoo.feature.image.imagePreprocessing
@@ -9,7 +9,7 @@ zoo.feature.image.imagePreprocessing module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.image.imageset module
+imageset 
 ---------------------------------
 
 .. automodule:: zoo.feature.image.imageset
@@ -17,7 +17,7 @@ zoo.feature.image.imageset module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.image3d.transformation module
+transformation 
 -----------------------------------------
 
 .. automodule:: zoo.feature.image3d.transformation
@@ -25,7 +25,7 @@ zoo.feature.image3d.transformation module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.text.text\_feature module
+text_feature 
 -------------------------------------
 
 .. automodule:: zoo.feature.text.text_feature
@@ -33,7 +33,7 @@ zoo.feature.text.text\_feature module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.text.text\_set module
+text_set 
 ---------------------------------
 
 .. automodule:: zoo.feature.text.text_set
@@ -41,7 +41,7 @@ zoo.feature.text.text\_set module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.text.transformer module
+transformer 
 -----------------------------------
 
 .. automodule:: zoo.feature.text.transformer
@@ -49,7 +49,7 @@ zoo.feature.text.transformer module
     :undoc-members:
     :show-inheritance:
 
-zoo.feature.common module
+common 
 -------------------------
 .. automodule:: zoo.feature.common
     :members:

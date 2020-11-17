@@ -8,6 +8,7 @@ ray==0.8.4
 onnx==1.6.0
 mxnet==1.6.0
 featuretools==0.13.4
+xgboost==1.1.1
 sphinx-copybutton
 sphinx-jsonschema
 sphinx-click
