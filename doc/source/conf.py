@@ -34,9 +34,13 @@ class ChildClassMock(mock.MagicMock):
 
 MOCK_MODULES = [
      "mxnet",
-	 "bigdl",
-	 "tensorflow",
-	 "gluonnlp"
+     "bigdl",
+     "tensorflow",
+     "gluonnlp",
+     "nlp-architect",
+     "bert-tensorflow",
+     "ray",
+     "onnx",
 ]
 
 for mod_name in MOCK_MODULES:
