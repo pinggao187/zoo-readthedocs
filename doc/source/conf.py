@@ -41,6 +41,8 @@ MOCK_MODULES = [
      "bert-tensorflow",
      "ray",
      "onnx",
+     "featuretools",
+     "xgboost",
 ]
 
 for mod_name in MOCK_MODULES:
