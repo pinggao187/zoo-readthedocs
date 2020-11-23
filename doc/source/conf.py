@@ -23,6 +23,26 @@ import urllib
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath("../../pyzoo/"))
 
+
+# These lines added to enable Sphinx to work without installing Ray.
+import mock
+
+class ChildClassMock(mock.MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return mock.Mock
+
+MOCK_MODULES = [
+     "mxnet",
+	 "bigdl",
+	 "tensorflow",
+	 "gluonnlp"
+]
+
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+
+
 # -- Project information -----------------------------------------------------
 import sphinx_rtd_theme
 html_theme = "sphinx_rtd_theme"
