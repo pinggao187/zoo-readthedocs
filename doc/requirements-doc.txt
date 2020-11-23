@@ -1,3 +1,4 @@
+bigdl==0.11.1
 sphinx-copybutton
 sphinx-jsonschema
 sphinx-click
