@@ -34,7 +34,6 @@ class ChildClassMock(mock.MagicMock):
 
 MOCK_MODULES = [
      "mxnet",
-     "bigdl",
      "tensorflow",
      "gluonnlp",
      "nlp-architect",
