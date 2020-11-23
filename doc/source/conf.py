@@ -19,12 +19,9 @@ import shutil
 import urllib
 
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, '.')
+#sys.path.insert(0, '.')
+sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath("../../pyzoo/"))
-
-
-
-
 
 # -- Project information -----------------------------------------------------
 import sphinx_rtd_theme
@@ -50,6 +47,7 @@ source_suffix = ['.rst', '.md']
 source_parsers = {
     '.md': CommonMarkParser,
 }
+master_doc = 'index'
 
 project = 'analytics-zoo'
 copyright = '2020, analytice-zoo'
@@ -74,17 +72,31 @@ release = version
 #extensions = [
  #   'sphinx.ext.autodoc',
 #]
-
+"""
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'analytics_zoo_pytext']
 extensions += [
-    'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
     'sphinx_copybutton',
     'sphinx_click.ext',
     'sphinx-jsonschema',
+    'sphinx.ext.napoleon',
+    'sphinx_click.ext',
+    'sphinxemoji.sphinxemoji',
 ]
 
+"""
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx_click.ext',
+    'sphinx-jsonschema',
+    'sphinx.ext.napoleon',
+    'sphinxemoji.sphinxemoji',
+    'sphinx_copybutton',
+    'versionwarning.extension',
+    'sphinx.ext.mathjax',
+]
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -92,9 +104,14 @@ templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
+from recommonmark.parser import CommonMarkParser
+
+# The suffix of source filenames.
+source_suffix = ['.rst', '.md']
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -110,10 +127,13 @@ language = None
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 
-exclude_patterns = []
+#exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+exclude_patterns = ['_build']
+#todo_include_todos = False
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -221,3 +241,4 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+

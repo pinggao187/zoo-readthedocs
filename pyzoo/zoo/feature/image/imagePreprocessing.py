@@ -70,17 +70,90 @@ class ImageResize(ImagePreprocessing):
         super(ImageResize, self).__init__(bigdl_type, resize_h, resize_w,
                                           resize_mode, use_scale_factor)
 
-
 class ImageBrightness(ImagePreprocessing):
-    """
-    adjust the image brightness
+    """adjust the image brightness.
+    
+    Launches a set of actors which connect via distributed PyTorch and
+    coordinate gradient updates to train the provided model. If Ray is not
+    initialized, TorchTrainer will automatically initialize a local Ray
+    cluster for you. Be sure to run `ray.init(address="auto")` to leverage
+    multi-node training.
 
-    :param deltaLow: brightness parameter: low bound
-    :param deltaHigh: brightness parameter: high bound
+    .. code-block:: python
+
+        class MyTrainingOperator(TrainingOperator):
+
+            def setup(self, config):
+                model = nn.Linear(1, 1)
+                optimizer = torch.optim.SGD(
+                    model.parameters(), lr=config.get("lr", 1e-4))
+                loss = torch.nn.MSELoss()
+
+                batch_size = config["batch_size"]
+                train_data, val_data = LinearDataset(2, 5), LinearDataset(2, 5)
+                train_loader = DataLoader(train_data, batch_size=batch_size)
+                val_loader = DataLoader(val_data, batch_size=batch_size)
+
+                self.model, self.optimizer = self.register(
+                    models=model,
+                    optimizers=optimizer,
+                    criterion=loss)
+
+                self.register_data(
+                    train_loader=train_loader,
+                    validation_loader=val_loader)
+
+        trainer = TorchTrainer(
+            training_operator_cls=MyTrainingOperator,
+            config={"batch_size": 32},
+            use_gpu=True
+        )
+        for i in range(4):
+            trainer.train()
+
+    Args:
+        training_operator_cls (type): Custom training operator class
+            that subclasses the TrainingOperator class. This class
+            will be copied onto all remote workers and used to specify
+            training components and custom training and validation operations.
+        initialization_hook (function): A function to call on all training
+            workers when they are first initialized. This could be useful to
+            set environment variables for all the worker processes.
+        config (dict): Custom configuration value to be passed to
+            all operator constructors.    
+        training_operator_cls (type): Custom training operator class
+            that subclasses the TrainingOperator class. This class
+            will be copied onto all remote workers and used to specify
+            training components and custom training and validation operations.
+        initialization_hook (function): A function to call on all training
+            workers when they are first initialized. This could be useful to
+            set environment variables for all the worker processes.
+        config (dict): Custom configuration value to be passed to
+            all operator constructors.
     """
     def __init__(self, delta_low, delta_high, bigdl_type="float"):
         super(ImageBrightness, self).__init__(bigdl_type, float(delta_low), float(delta_high))
 
+    def is_local(self):
+        """whether this is a LocalImageSet
+
+        Create a ImageSet from rdds of ndarray.
+
+        Args:
+            training_operator_cls (type): Custom training operator class
+                that subclasses the TrainingOperator class. This class
+                will be copied onto all remote workers and used to specify
+                training components and custom training and validation operations.
+            initialization_hook (function): A function to call on all training
+                workers when they are first initialized. This could be useful to
+                set environment variables for all the worker processes.
+            config (dict): Custom configuration value to be passed to
+                all operator constructors.
+
+        """
+
+        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
+ 
 
 class ImageChannelNormalize(ImagePreprocessing):
     """
