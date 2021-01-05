@@ -24,30 +24,6 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath("../../pyzoo/"))
 
 
-# These lines added to enable Sphinx to work without installing Ray.
-import mock
-
-class ChildClassMock(mock.MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return mock.Mock
-
-MOCK_MODULES = [
-     "mxnet",
-     "tensorflow",
-     "gluonnlp",
-     "nlp-architect",
-     "bert-tensorflow",
-     "ray",
-     "onnx",
-     "featuretools",
-     "xgboost",
-]
-
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
-
-
 # -- Project information -----------------------------------------------------
 import sphinx_rtd_theme
 html_theme = "sphinx_rtd_theme"
@@ -81,8 +57,8 @@ author = 'analytice-zoo'
 # The short X.Y version
 #version = ''
 # The full version, including alpha/beta/rc tags
-from zoo import __version__ as version
-release = version
+#from zoo import __version__ as version
+#release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -105,7 +81,6 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinxemoji.sphinxemoji',
     'sphinx_copybutton',
-    'versionwarning.extension',
     'sphinx.ext.mathjax',
 ]
 
@@ -249,6 +224,3 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
-
-
