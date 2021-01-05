@@ -45,16 +45,7 @@ class Recipe(metaclass=ABCMeta):
             runtime_config["reward_metric"] = self.reward_metric
         return runtime_config
 
-    def fixed_params(self):
-        return None
-
-    def search_algorithm_params(self):
-        return None
-
-    def search_algorithm(self):
-        return None
-
-    def scheduler_algorithm(self):
+    def manual_search_space(self):
         return None
 
 
@@ -287,6 +278,72 @@ class LSTMGridRandomRecipe(Recipe):
         }
 
 
+class Seq2SeqRandomRecipe(Recipe):
+    """
+    A recipe involves both grid search and random search, only for LSTM.
+       tsp = TimeSequencePredictor(...,recipe = LSTMGridRandomRecipe(1))
+    """
+
+    def __init__(
+            self,
+            num_rand_samples=1,
+            epochs=5,
+            training_iteration=10,
+            look_back=2,
+            latent_dim=[32, 64, 128, 256],
+            batch_size=[32, 64]):
+        """
+        Constructor.
+        :param lstm_1_units: random search candidates for num of lstm_1_units
+        :param lstm_2_units: grid search candidates for num of lstm_1_units
+        :param batch_size: grid search candidates for batch size
+        :param num_rand_samples: number of hyper-param configurations sampled randomly
+        :param look_back: the length to look back, either a tuple with 2 int values,
+          which is in format is (min len, max len), or a single int, which is
+          a fixed length to look back.
+        :param training_iteration: no. of iterations for training (n epochs) in trials
+        :param epochs: no. of epochs to train in each iteration
+        """
+        super(self.__class__, self).__init__()
+        # -- runtime params
+        self.num_samples = num_rand_samples
+        self.training_iteration = training_iteration
+
+        # -- model params
+        self.past_seq_config = PastSeqParamHandler.get_past_seq_config(
+            look_back)
+        self.latent_dim = tune.choice(latent_dim)
+        self.dropout_config = tune.uniform(0.2, 0.5)
+
+        # -- optimization params
+        self.lr = tune.uniform(0.001, 0.01)
+        self.batch_size = tune.grid_search(batch_size)
+        self.epochs = epochs
+
+    def search_space(self, all_available_features):
+        return {
+            # -------- feature related parameters
+            "selected_features": tune.sample_from(lambda spec:
+                                                  json.dumps(
+                                                      list(np.random.choice(
+                                                          all_available_features,
+                                                          size=np.random.randint(
+                                                              low=3,
+                                                              high=len(all_available_features) + 1),
+                                                          replace=False)))),
+
+            "model": "Seq2Seq",
+            "latent_dim": self.latent_dim,
+            "dropout": self.dropout_config,
+
+            # ----------- optimization parameters
+            "lr": self.lr,
+            "batch_size": self.batch_size,
+            "epochs": self.epochs,
+            "past_seq_len": self.past_seq_config,
+        }
+
+
 class MTNetGridRandomRecipe(Recipe):
     """
     Grid+Random Recipe for MTNet
@@ -452,21 +509,13 @@ class BayesRecipe(Recipe):
         self.reward_metric = reward_metric
         self.training_iteration = training_iteration
         self.epochs = epochs
-        if isinstance(
-            look_back,
-            tuple) and len(look_back) == 2 and isinstance(
-                look_back[0],
-                int) and isinstance(
-                look_back[1],
-                int):
+        if isinstance(look_back, tuple) and len(look_back) == 2 and \
+                isinstance(look_back[0], int) and isinstance(look_back[1], int):
             if look_back[1] < 2:
-                raise ValueError(
-                    "The max look back value should be at least 2")
+                raise ValueError("The max look back value should be at least 2")
             if look_back[0] < 2:
-                print(
-                    "The input min look back value is smaller than 2. "
-                    "We sample from range (2, {}) instead.".format(
-                        look_back[1]))
+                print("The input min look back value is smaller than 2. "
+                      "We sample from range (2, {}) instead.".format(look_back[1]))
             self.bayes_past_seq_config = {"past_seq_len_float": look_back}
             self.fixed_past_seq_config = {}
         elif isinstance(look_back, int):
@@ -482,10 +531,8 @@ class BayesRecipe(Recipe):
                 "look_back should be either a tuple with 2 int values:"
                 " (min_len, max_len) or a single int".format(look_back))
 
-    def search_space(self, all_available_features):
-        feature_space = {"bayes_feature_{}".format(feature): (0.3, 1)
-                         for feature in all_available_features}
-        other_space = {
+    def manual_search_space(self):
+        model_space = {
             # --------- model parameters
             "lstm_1_units_float": (8, 128),
             "dropout_1": (0.2, 0.5),
@@ -496,30 +543,19 @@ class BayesRecipe(Recipe):
             "lr": (0.001, 0.01),
             "batch_size_log": (5, 10),
         }
-        total_space = other_space.copy()
-        total_space.update(feature_space)
+        total_space = model_space.copy()
         total_space.update(self.bayes_past_seq_config)
         return total_space
 
-    def fixed_params(self):
+    def search_space(self, all_available_features):
         total_fixed_params = {
             "epochs": self.epochs,
+            "model": "LSTM",
+            "selected_features": json.dumps(all_available_features),
             # "batch_size": 1024,
         }
         total_fixed_params.update(self.fixed_past_seq_config)
         return total_fixed_params
-
-    def search_algorithm_params(self):
-        return {
-            "utility_kwargs": {
-                "kind": "ucb",
-                "kappa": 2.5,
-                "xi": 0.0
-            }
-        }
-
-    def search_algorithm(self):
-        return 'BayesOpt'
 
 
 class XgbRegressorGridRandomRecipe(Recipe):
@@ -590,20 +626,13 @@ class XgbRegressorSkOptRecipe(Recipe):
         self.max_depth_range = max_depth_range
 
     def search_space(self, all_available_features):
-        return {
-            # -------- feature related parameters
-            "n_estimators": self.n_estimators_range,
-            "max_depth": self.max_depth_range,
-        }
-
-    def fixed_params(self):
-        total_fixed_params = {
+        space = {
             "n_estimators": tune.randint(self.n_estimators_range[0],
                                          self.n_estimators_range[1]),
             "max_depth": tune.randint(self.max_depth_range[0],
                                       self.max_depth_range[1]),
         }
-        return total_fixed_params
+        return space
 
     def opt_params(self):
         from skopt.space import Integer
@@ -612,9 +641,3 @@ class XgbRegressorSkOptRecipe(Recipe):
             Integer(self.max_depth_range[0], self.max_depth_range[1]),
         ]
         return params
-
-    def search_algorithm(self):
-        return 'SkOpt'
-
-    def scheduler_algorithm(self):
-        return "AsyncHyperBand"

@@ -30,6 +30,8 @@ from zoo.pipeline.api.keras.engine.topology import to_bigdl_metric, Loss, OptimM
 from zoo.pipeline.api.net.utils import find_placeholders, to_bigdl_optim_method, find_tensors
 from zoo.pipeline.estimator import Estimator
 from zoo.util import nest
+from zoo.tfpark.tf_dataset import TFNdarrayDataset
+from zoo.tfpark.tf_dataset import _standarize_feature_label_dataset
 
 
 if sys.version >= '3':
@@ -600,7 +602,7 @@ class TFOptimizer:
 
     @classmethod
     def from_keras(cls, keras_model, dataset,
-                   session_config=None, model_dir=None, metrics=None):
+                   session_config=None, model_dir=None, metrics=None, optimizer=None):
         """
         Create a TFOptimizer from a tensorflow.keras model. The model must be compiled.
         :param keras_model: the tensorflow.keras model, which must be compiled.
@@ -610,6 +612,7 @@ class TFOptimizer:
         import tensorflow.keras.backend as K
 
         model_inputs = keras_model.inputs
+
         if hasattr(keras_model, "targets"):
             model_targets = keras_model.targets
         else:
@@ -617,6 +620,10 @@ class TFOptimizer:
 
         # target can be None if loss is None
         model_targets = list(filter(lambda x: x is not None, model_targets))
+
+        # standarize feature, labels to support keras model
+        if isinstance(dataset, TFNdarrayDataset):
+            dataset = _standarize_feature_label_dataset(dataset, keras_model)
 
         flatten_inputs = nest.flatten(dataset.feature_tensors)
         assert len(model_inputs) == len(flatten_inputs), \
@@ -684,7 +691,11 @@ class TFOptimizer:
             K.learning_phase(): [True, False]
         }
 
-        updates = keras_model.updates
+        updates = []
+
+        updates += keras_model.get_updates_for(None)
+        # Conditional updates relevant to this model
+        updates += keras_model.get_updates_for(keras_model.inputs)
 
         if bigdl_val_methods is not None:
             val_methods = to_list(bigdl_val_methods)
@@ -697,6 +708,21 @@ class TFOptimizer:
                 metrics = bigdl_metrics
             else:
                 metrics.update(bigdl_metrics)
+
+        if optimizer is not None:
+            clip_norm = None
+            clip_value = None
+            if hasattr(keras_optimizer, 'clipnorm'):
+                clip_norm = keras_optimizer.clipnorm
+            if hasattr(keras_optimizer, 'clipvalue'):
+                clip_value = (-keras_optimizer.clipvalue, keras_optimizer.clipvalue)
+            tf_model = TFModel.create(loss, sess, model_inputs, model_targets, keras_model.outputs,
+                                      grads, variables, loss.graph,
+                                      tensor_with_value, session_config, metrics,
+                                      updates, model_dir=None)
+
+            return cls(tf_model, optimizer, sess=sess, dataset=dataset,
+                       clip_norm=clip_norm, clip_value=clip_value, model_dir=model_dir)
 
         return cls.from_train_op(train_op, loss, inputs=model_inputs, labels=model_targets,
                                  metrics=metrics, updates=updates, sess=sess, dataset=dataset,

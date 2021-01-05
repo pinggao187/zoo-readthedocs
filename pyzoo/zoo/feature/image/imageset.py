@@ -1,4 +1,4 @@
-
+#
 # Copyright 2018 Analytics Zoo Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,32 +17,6 @@ from bigdl.transform.vision.image import ImageFrame
 from bigdl.util.common import *
 from zoo.common.utils import callZooFunc
 
-def is_local(self):
-        """
-        whether this is a LocalImageSet
-        Create a ImageSet from rdds of ndarray.
-
-        :param image_rdd: a rdd of ndarray, each ndarray should has dimension of 3 or 4 (3D images)
-        :param label_rdd: a rdd of ndarray
-        :return: a DistributedImageSet
-
-        >>> import numpy as np
-        >>> from bigdl.util.common import callBigDlFunc
-        >>> from numpy.testing import assert_allclose
-        >>> np.random.seed(123)
-        >>> sample = Sample.from_ndarray(np.random.random((2,3)), np.random.random((2,3)))
-        >>> sample_back = callBigDlFunc("float", "testSample", sample)
-        >>> assert_allclose(sample.features[0].to_ndarray(), sample_back.features[0].to_ndarray())
-        >>> assert_allclose(sample.label.to_ndarray(), sample_back.label.to_ndarray())
-        >>> expected_feature_storage = np.array(([[0.69646919, 0.28613934, 0.22685145], [0.55131477, 0.71946895, 0.42310646]]))
-        >>> expected_feature_shape = np.array([2, 3])
-        >>> expected_label_storage = np.array(([[0.98076421, 0.68482971, 0.48093191], [0.39211753, 0.343178, 0.72904968]]))
-        >>> expected_label_shape = np.array([2, 3])
-        >>> assert_allclose(sample.features[0].storage, expected_feature_storage, rtol=1e-6, atol=1e-6)
-        >>> assert_allclose(sample.features[0].shape, expected_feature_shape)
-        """
-
-        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
 
 class ImageSet(JavaValue):
     """
@@ -82,25 +56,27 @@ class ImageSet(JavaValue):
              bigdl_type="float"):
         """
         Read images as Image Set
-
-        :param path: path to read images
-
+        if sc is defined, Read image as DistributedImageSet from local file system or HDFS
+        if sc is null, Read image as LocalImageSet from local file system
+        :param path path to read images
         if sc is defined, path can be local or HDFS. Wildcard character are supported.
+        if sc is null, path is local directory/image file/image file with wildcard character
 
         if withLabel is set to true, path should be a directory that have two levels. The
         first level is class folders, and the second is images. All images belong to a same
         class should be put into the same class folder. So each image in the path is labeled by the
         folder it belongs.
 
-        :param sc: SparkContext
-        :param min_partitions: A suggestion value of the minimal splitting number for input data.
-        :param resize_height: height after resize, by default is -1 which will not resize the image
-        :param resize_width: width after resize, by default is -1 which will not resize the image
-        :param image_codec: specifying the color type of a loaded image, same as in OpenCV.imread.By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED(-1)
-        :param with_label: whether to treat folders in the path as image classification 
-                           labels and read the labels into ImageSet.
-        :param one_based_label: whether to use one based label
-        :return: ImageSet
+        :param sc SparkContext
+        :param min_partitions A suggestion value of the minimal splitting number for input data.
+        :param resize_height height after resize, by default is -1 which will not resize the image
+        :param resize_width width after resize, by default is -1 which will not resize the image
+        :param image_codec specifying the color type of a loaded image, same as in OpenCV.imread.
+               By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED(-1)
+        :param with_label whether to treat folders in the path as image classification labels
+               and read the labels into ImageSet.
+        :param one_based_label whether to use one based label
+        :return ImageSet
         """
         return ImageSet(jvalue=callZooFunc(bigdl_type, "readImageSet", path,
                                            sc, min_partitions, resize_height,
@@ -241,4 +217,3 @@ class DistributedImageSet(ImageSet):
                             (predict[0],
                              list(map(lambda x: x.to_ndarray(), predict[1]))) if predict[1]
                             else (predict[0], None))
-

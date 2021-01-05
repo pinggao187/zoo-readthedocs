@@ -15,12 +15,36 @@
 #
 
 import os
+import types
+import itertools
 import subprocess
 import ray
 from dmlc_tracker.tracker import get_host_ip
+
+from zoo.orca.data.utils import ray_partition_get_data_label, process_spark_xshards
 from zoo.ray import RayContext
 from zoo.orca.learn.mxnet.mxnet_runner import MXNetRunner
 from zoo.orca.learn.mxnet.utils import find_free_port
+
+
+def shards_ref_to_creator(shards_ref, shuffle=False):
+
+    def data_creator(config, kv):
+        import mxnet as mx
+        assert "batch_size" in config, "batch_size must be set in config"
+        data, label = ray_partition_get_data_label(ray.get(shards_ref),
+                                                   allow_tuple=False,
+                                                   allow_list=False)
+
+        train_data_iter = mx.io.NDArrayIter(data=data, label=label,
+                                            batch_size=config["batch_size"],
+                                            shuffle=shuffle)
+        if "train_resize_batch_num" in config:
+            train_data_iter = mx.io.ResizeIter(train_data_iter,
+                                               config["train_resize_batch_num"])
+        return train_data_iter
+
+    return data_creator
 
 
 class Estimator(object):
@@ -67,7 +91,10 @@ class Estimator(object):
         ray_ctx = RayContext.get()
         if not num_workers:
             num_workers = ray_ctx.num_ray_nodes
-        self.config = config
+        self.config = {} if config is None else config
+        assert isinstance(config, dict), "config must be a dict"
+        for param in ["optimizer", "optimizer_params", "log_interval"]:
+            assert param in config, param + " must be specified in config"
         self.model_creator = model_creator
         self.loss_creator = loss_creator
         self.validation_metrics_creator = validation_metrics_creator
@@ -159,37 +186,65 @@ class Estimator(object):
                 "when creating the Estimator"
         from zoo.orca.data import SparkXShards
         if isinstance(data, SparkXShards):
-            if data.num_partitions() != self.num_workers:
-                data = data.repartition(self.num_workers)
-            data = data.to_ray()
-            if validation_data:
-                assert isinstance(validation_data, SparkXShards)
-                if validation_data.num_partitions() != self.num_workers:
-                    validation_data = validation_data.repartition(self.num_workers)
-                validation_data = validation_data.to_ray()
-            self.workers = data.colocate_actors(self.workers)
-            train_data_list = data.get_partitions()
-            if validation_data:
-                val_data_list = validation_data.get_partitions()
+
+            ray_xshards = process_spark_xshards(data, self.num_workers)
+
+            if validation_data is None:
+                def transform_func(worker, shards_ref):
+                    data_creator = shards_ref_to_creator(shards_ref, shuffle=True)
+
+                    return worker.train.remote(data_creator,
+                                               epochs,
+                                               batch_size,
+                                               None,
+                                               train_resize_batch_num)
+
+                stats_shards = ray_xshards.transform_shards_with_actors(self.workers,
+                                                                        transform_func,
+                                                                        gang_scheduling=True)
             else:
-                val_data_list = [None] * self.num_workers
+                val_ray_xshards = process_spark_xshards(validation_data, self.num_workers)
+
+                def zip_func(worker, this_shards_ref, that_shards_ref):
+                    data_creator = shards_ref_to_creator(this_shards_ref,
+                                                         shuffle=True)
+                    validation_data_creator = shards_ref_to_creator(that_shards_ref,
+                                                                    shuffle=True)
+                    return worker.train.remote(data_creator,
+                                               epochs,
+                                               batch_size,
+                                               validation_data_creator,
+                                               train_resize_batch_num)
+                stats_shards = ray_xshards.zip_shards_with_actors(val_ray_xshards,
+                                                                  self.workers,
+                                                                  zip_func,
+                                                                  gang_scheduling=True)
+            server_stats = [server.train.remote(None, epochs, batch_size,
+                                                None, train_resize_batch_num)
+                            for server in self.servers]
+            worker_stats = stats_shards.collect()
+            server_stats = ray.get(server_stats)
+            server_stats = list(itertools.chain.from_iterable(server_stats))
+            stats = worker_stats + server_stats
+
         else:  # data_creator functions; should return Iter or DataLoader
-            assert callable(data),\
+            assert isinstance(data, types.FunctionType),\
                 "train_data should be either an instance of SparkXShards or a callable function"
             train_data_list = [data] * self.num_workers
             if validation_data:
-                assert callable(validation_data),\
+                assert isinstance(validation_data, types.FunctionType),\
                     "val_data should be either an instance of SparkXShards or a callable function"
             val_data_list = [validation_data] * self.num_workers
-        self.runners = self.workers + self.servers
-        # For servers, data is not used and thus just input a None value.
-        train_data_list += [None] * self.num_servers
-        val_data_list += [None] * self.num_servers
+            self.runners = self.workers + self.servers
+            # For servers, data is not used and thus just input a None value.
+            train_data_list += [None] * self.num_servers
+            val_data_list += [None] * self.num_servers
 
-        stats = ray.get(
-            [runner.train.remote(train_data_list[i], epochs, batch_size,
-                                 val_data_list[i], train_resize_batch_num)
-             for i, runner in enumerate(self.runners)])
+            stats = ray.get(
+                [runner.train.remote(train_data_list[i], epochs, batch_size,
+                                     val_data_list[i], train_resize_batch_num)
+                 for i, runner in enumerate(self.runners)])
+            stats = list(itertools.chain.from_iterable(stats))
         return stats
 
     def shutdown(self):

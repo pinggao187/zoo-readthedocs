@@ -15,11 +15,11 @@
 #
 from zoo.pipeline.estimator.estimator import Estimator as SparkEstimator
 from zoo.orca.learn.pytorch.training_operator import TrainingOperator
+from zoo.orca.learn.spark_estimator import Estimator as OrcaSparkEstimator
+from zoo.orca.learn.optimizers import Optimizer as OrcaOptimizer, SGD
 from zoo.orca.data import SparkXShards
-from bigdl.optim.optimizer import MaxEpoch
+from bigdl.optim.optimizer import MaxEpoch, OptimMethod
 from zoo.feature.common import FeatureSet
-
-import torch
 from torch.optim.optimizer import Optimizer as TorchOptimizer
 from torch.utils.data import DataLoader
 
@@ -59,29 +59,31 @@ class Estimator(object):
                    use_tqdm=False,
                    workers_per_node=1,
                    model_dir=None,
-                   backend="horovod"):
-        if backend == "horovod":
-            return PyTorchHorovodEstimatorWrapper(model_creator=model,
-                                                  optimizer_creator=optimizer,
-                                                  loss_creator=loss,
-                                                  scheduler_creator=scheduler_creator,
-                                                  training_operator_cls=training_operator_cls,
-                                                  initialization_hook=initialization_hook,
-                                                  config=config,
-                                                  scheduler_step_freq=scheduler_step_freq,
-                                                  use_tqdm=use_tqdm,
-                                                  workers_per_node=workers_per_node)
+                   backend="bigdl"):
+        if backend in {"horovod", "torch_distributed"}:
+            return PyTorchRayEstimatorWrapper(model_creator=model,
+                                              optimizer_creator=optimizer,
+                                              loss_creator=loss,
+                                              scheduler_creator=scheduler_creator,
+                                              training_operator_cls=training_operator_cls,
+                                              initialization_hook=initialization_hook,
+                                              config=config,
+                                              scheduler_step_freq=scheduler_step_freq,
+                                              use_tqdm=use_tqdm,
+                                              workers_per_node=workers_per_node,
+                                              backend=backend)
         elif backend == "bigdl":
-            return PytorchSparkEstimatorWrapper(model=model,
-                                                loss=loss,
-                                                optimizer=optimizer,
-                                                model_dir=model_dir,
-                                                bigdl_type="float")
+            return PyTorchSparkEstimator(model=model,
+                                         loss=loss,
+                                         optimizer=optimizer,
+                                         model_dir=model_dir,
+                                         bigdl_type="float")
         else:
-            raise ValueError("only horovod and bigdl backend are supported for now")
+            raise ValueError("Only horovod, torch_distributed and bigdl backends are supported"
+                             f" for now, got backend: {backend}")
 
 
-class PyTorchHorovodEstimatorWrapper(Estimator):
+class PyTorchRayEstimatorWrapper(Estimator):
     def __init__(self,
                  *,
                  model_creator,
@@ -93,60 +95,82 @@ class PyTorchHorovodEstimatorWrapper(Estimator):
                  config=None,
                  scheduler_step_freq="batch",
                  use_tqdm=False,
+                 backend="torch_distributed",
                  workers_per_node=1):
-        from zoo.orca.learn.pytorch.pytorch_horovod_estimator import PyTorchHorovodEstimator
-        self.estimator = PyTorchHorovodEstimator(model_creator=model_creator,
-                                                 optimizer_creator=optimizer_creator,
-                                                 loss_creator=loss_creator,
-                                                 scheduler_creator=scheduler_creator,
-                                                 training_operator_cls=training_operator_cls,
-                                                 initialization_hook=initialization_hook,
-                                                 config=config,
-                                                 scheduler_step_freq=scheduler_step_freq,
-                                                 use_tqdm=use_tqdm,
-                                                 workers_per_node=workers_per_node)
+        from zoo.orca.learn.pytorch.pytorch_ray_estimator import PyTorchRayEstimator
+        self.estimator = PyTorchRayEstimator(model_creator=model_creator,
+                                             optimizer_creator=optimizer_creator,
+                                             loss_creator=loss_creator,
+                                             scheduler_creator=scheduler_creator,
+                                             training_operator_cls=training_operator_cls,
+                                             initialization_hook=initialization_hook,
+                                             config=config,
+                                             scheduler_step_freq=scheduler_step_freq,
+                                             use_tqdm=use_tqdm,
+                                             backend=backend,
+                                             workers_per_node=workers_per_node)
 
-    def fit(self, data, epochs=1, profile=False, reduce_results=True, info=None):
+    def fit(self, data, epochs=1, batch_size=32, profile=False, reduce_results=True, info=None):
         """
+        Trains a PyTorch model given training data for several epochs.
 
-        :param data: (callable) a funtion that takes a config dict as input and return a data
-            loader containing the training data.
-        :param epochs: (int) Number of epochs to train the model
-        :param profile: (bool) Returns time stats for the training procedure.
-        :param reduce_results: (bool) Whether to average all metrics across all workers into one
-            dict. If a metric is a non-numerical value (or nested dictionaries), one value will be
-            randomly selected among the workers. If False, returns a list of dicts.
-        :param info: (dict) Optional dictionary passed to the training operator for ``train_epoch``
-            and ``train_batch``.
-        :return: (list) A list of stats whose length will be equal to ``epochs``.
-                stats is a dictionary of metrics for training.
-                    You can provide custom metrics by passing in a custom
-                    ``training_operator_cls``. If ``reduce_results=False``,
-                    this will return a list of metric dictionaries whose
-                    length will be equal to ``num_workers``.
+        Calls `TrainingOperator.train_epoch()` on N parallel workers simultaneously
+        underneath the hood.
+        :param data: An instance of SparkXShards or a function that takes config as
+        argument and returns a PyTorch DataLoader for training.
+        :param epochs: The number of epochs to train the model. Default is 1.
+        :param batch_size: The number of samples per batch for each worker. Default is 32.
+        The total batch size would be workers_per_node*num_nodes.
+        If you training data is a function, you can set batch_size to be config["batch_size"]
+        for the PyTorch DataLoader.
+        :param profile: Boolean. Whether to return time stats for the training procedure.
+        Default is False.
+        :param reduce_results: Boolean. Whether to average all metrics across all workers into
+        one dict. If a metric is a non-numerical value (or nested dictionaries), one value will
+        be randomly selected among the workers. If False, returns a list of dicts for all workers.
+        Default is True.
+        :param info: An optional dictionary that can be passed to the TrainingOperator for
+        train_epoch and train_batch.
+
+        :return A list of dictionary of metrics for every training epoch. If reduce_results is
+        False, this will return a nested list of metric dictionaries whose length will be equal
+        to the total number of workers.
+        You can also provide custom metrics by passing in a custom training_operator_cls when
+        creating the Estimator.
         """
-        return self.estimator.train(data_creator=data, epochs=epochs,
+        return self.estimator.train(data=data, epochs=epochs, batch_size=batch_size,
                                     profile=profile, reduce_results=reduce_results, info=info)
 
     def predict(self, data, **kwargs):
         pass
 
-    def evaluate(self, data, num_steps=None, profile=False, info=None):
+    def evaluate(self, data, batch_size=32, num_steps=None, profile=False, info=None):
         """
+        Evaluates a PyTorch model given validation data.
+        Note that only accuracy for classification with zero-based label is supported by
+        default. You can override validate_batch in TrainingOperator for other metrics.
 
-        :param data: (callable) a funtion that takes a config dict as input and return
-            a data loader containing the validation data.
-        :param num_steps: (int) Number of batches to compute update steps on.
-               This corresponds also to the number of times ``TrainingOperator.validate_batch``
-               is called.
-        :param profile: (bool) Returns time stats for the evaluation procedure.
-        :param info: (dict) Optional dictionary passed to the training operator for `validate`
-            and `validate_batch`.
-        :return: A dictionary of metrics for validation.
-            You can provide custom metrics by passing in a custom ``training_operator_cls``.
+        Calls `TrainingOperator.validate()` on N parallel workers simultaneously
+        underneath the hood.
+        :param data: An instance of SparkXShards or a function that takes config as
+        argument and returns a PyTorch DataLoader for validation.
+        :param batch_size: The number of samples per batch for each worker. Default is 32.
+        The total batch size would be workers_per_node*num_nodes.
+        If you validation data is a function, you can set batch_size to be config["batch_size"]
+        for the PyTorch DataLoader.
+        :param num_steps: The number of batches to compute the validation results on. This
+        corresponds to the number of times `TrainingOperator.validate_batch` is called.
+        :param profile: Boolean. Whether to return time stats for the training procedure.
+        Default is False.
+        :param info: An optional dictionary that can be passed to the TrainingOperator
+        for validate.
+
+        :return A dictionary of metrics for the given data, including validation accuracy and loss.
+        You can also provide custom metrics by passing in a custom training_operator_cls when
+        creating the Estimator.
         """
-        return self.estimator.validate(data_creator=data, num_steps=num_steps, profile=profile,
-                                       info=info)
+        return self.estimator.validate(data=data, batch_size=batch_size, num_steps=num_steps,
+                                       profile=profile, info=info)
 
     def get_model(self):
         """Returns the learned model(s)."""
@@ -171,7 +195,7 @@ class PyTorchHorovodEstimatorWrapper(Estimator):
         return self.estimator.shutdown(force=force)
 
 
-class PytorchSparkEstimatorWrapper(Estimator):
+class PyTorchSparkEstimator(OrcaSparkEstimator):
     def __init__(self, model, loss, optimizer, model_dir=None, bigdl_type="float"):
         from zoo.pipeline.api.torch import TorchModel, TorchLoss, TorchOptim
         self.loss = loss
@@ -180,23 +204,33 @@ class PytorchSparkEstimatorWrapper(Estimator):
         else:
             self.loss = TorchLoss.from_pytorch(loss)
         if optimizer is None:
-            from bigdl.optim.optimizer import SGD
-            optimizer = SGD()
-        elif isinstance(optimizer, TorchOptimizer):
+            from zoo.orca.learn.optimizers.schedule import Default
+            optimizer = SGD(learningrate_schedule=Default())
+        if isinstance(optimizer, TorchOptimizer):
             optimizer = TorchOptim.from_pytorch(optimizer)
+        elif isinstance(optimizer, OrcaOptimizer):
+            optimizer = optimizer.get_optimizer()
+        else:
+            raise ValueError("Only PyTorch optimizer and orca optimizer are supported")
+        self.log_dir = None
+        self.app_name = None
+        self.model_dir = model_dir
         self.model = TorchModel.from_pytorch(model)
         self.estimator = SparkEstimator(self.model, optimizer, model_dir, bigdl_type=bigdl_type)
 
-    def fit(self, data, epochs=1, batch_size=32, validation_data=None, validation_methods=None,
-            checkpoint_trigger=None):
+    def fit(self, data, epochs=1, batch_size=32, feature_cols=None, labels_cols=None,
+            validation_data=None, validation_metrics=None, checkpoint_trigger=None):
         from zoo.orca.data.utils import to_sample
         from zoo.orca.learn.metrics import Metrics
         from zoo.orca.learn.trigger import Trigger
 
         end_trigger = MaxEpoch(epochs)
         assert batch_size > 0, "batch_size should be greater than 0"
-        validation_methods = Metrics.convert_metrics_list(validation_methods)
+        validation_metrics = Metrics.convert_metrics_list(validation_metrics)
         checkpoint_trigger = Trigger.convert_trigger(checkpoint_trigger)
+
+        if self.log_dir is not None and self.app_name is not None:
+            self.estimator.set_tensorboard(self.log_dir, self.app_name)
 
         if isinstance(data, SparkXShards):
             train_rdd = data.rdd.flatMap(to_sample)
@@ -209,7 +243,7 @@ class PytorchSparkEstimatorWrapper(Estimator):
                 val_feature_set = FeatureSet.sample_rdd(validation_data.rdd.flatMap(to_sample))
 
             self.estimator.train(train_feature_set, self.loss, end_trigger, checkpoint_trigger,
-                                 val_feature_set, validation_methods, batch_size)
+                                 val_feature_set, validation_metrics, batch_size)
         elif isinstance(data, DataLoader) or callable(data):
             train_feature_set = FeatureSet.pytorch_dataloader(data, "", "")
             if validation_data is None:
@@ -220,28 +254,37 @@ class PytorchSparkEstimatorWrapper(Estimator):
                 val_feature_set = FeatureSet.pytorch_dataloader(validation_data)
 
             self.estimator.train_minibatch(train_feature_set, self.loss, end_trigger,
-                                           checkpoint_trigger, val_feature_set, validation_methods)
+                                           checkpoint_trigger, val_feature_set, validation_metrics)
         else:
             raise ValueError("Data and validation data should be SparkXShards, DataLoaders or "
                              "callable data_creators but get " + data.__class__.__name__)
         return self
 
-    def predict(self, data, **kwargs):
-        pass
+    def predict(self, data, batch_size=4, feature_cols=None):
+        from zoo.orca.learn.utils import convert_predict_to_xshard
+        if isinstance(data, SparkXShards):
+            from zoo.orca.data.utils import to_sample
+            data_rdd = data.rdd.flatMap(to_sample)
+        else:
+            raise ValueError("Data should be XShards, each element needs to be {'x': a feature "
+                             "numpy array}.")
+        predicted_rdd = self.model.predict(data_rdd, batch_size=batch_size)
+        return convert_predict_to_xshard(predicted_rdd)
 
-    def evaluate(self, data, validation_methods=None, batch_size=32):
+    def evaluate(self, data, batch_size=32, feature_cols=None, labels_cols=None,
+                 validation_metrics=None):
         from zoo.orca.data.utils import to_sample
         from zoo.orca.learn.metrics import Metrics
 
         assert data is not None, "validation data shouldn't be None"
-        validation_methods = Metrics.convert_metrics_list(validation_methods)
+        validation_metrics = Metrics.convert_metrics_list(validation_metrics)
 
         if isinstance(data, SparkXShards):
             val_feature_set = FeatureSet.sample_rdd(data.rdd.flatMap(to_sample))
-            return self.estimator.evaluate(val_feature_set, validation_methods, batch_size)
+            return self.estimator.evaluate(val_feature_set, validation_metrics, batch_size)
         elif isinstance(data, DataLoader) or callable(data):
             val_feature_set = FeatureSet.pytorch_dataloader(data)
-            return self.estimator.evaluate_minibatch(val_feature_set, validation_methods)
+            return self.estimator.evaluate_minibatch(val_feature_set, validation_metrics)
         else:
             raise ValueError("Data should be a SparkXShards, a DataLoader or a callable "
                              "data_creator, but get " + data.__class__.__name__)
@@ -249,14 +292,41 @@ class PytorchSparkEstimatorWrapper(Estimator):
     def get_model(self):
         return self.model.to_pytorch()
 
-    def save(self, checkpoint):
-        pass
+    def save(self, model_path):
+        raise NotImplementedError
 
-    def load(self, checkpoint):
-        pass
+    def load(self, checkpoint, loss=None):
+        from zoo.orca.learn.utils import find_latest_checkpoint
+        if loss is not None:
+            from zoo.pipeline.api.torch import TorchLoss
+            self.loss = TorchLoss.from_pytorch(loss)
+        path, prefix, version = find_latest_checkpoint(checkpoint, model_type="pytorch")
+        if path is None:
+            raise ValueError("Cannot find PyTorch checkpoint, please check your checkpoint path.")
+        self.load_orca_checkpoint(path, version=version, prefix=prefix)
 
-    def shutdown(self, force=False):
-        pass
+    def load_orca_checkpoint(self, path, version, prefix=None):
+        import os
+        from bigdl.nn.layer import Model
+        from bigdl.optim.optimizer import OptimMethod
+        assert prefix is not None, "You should provide optimMethod prefix, " \
+                                   "for example 'optimMethod-TorchModelf53bddcc'"
+        try:
+            self.model = Model.load(os.path.join(path, "model.{}".format(version)))
+            optimizer = OptimMethod.load(os.path.join(path, "{}.{}".format(prefix, version)))
+        except Exception:
+            raise ValueError("Cannot load PyTorch checkpoint, please check your checkpoint path "
+                             "and checkpoint type.")
+        self.estimator = SparkEstimator(self.model, optimizer, self.model_dir)
+
+    def load_latest_orca_checkpoint(self, path):
+        self.load(checkpoint=path)
+
+    def get_train_summary(self, tag=None):
+        return self.estimator.get_train_summary(tag=tag)
+
+    def get_validation_summary(self, tag=None):
+        return self.estimator.get_validation_summary(tag=tag)
 
     def clear_gradient_clipping(self):
         """

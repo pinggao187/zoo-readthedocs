@@ -228,56 +228,6 @@ unset SPARK_DRIVER_MEMORY
 now=$(date "+%s")
 time6=$((now-start))
 
-echo "#7 start example test for pytorch"
-#timer
-start=$(date "+%s")
-echo "start example test for pytorch SimpleTrainingExample"
-export MASTER=local[1]
-export SPARK_DRIVER_MEMORY=5g
-python ${ANALYTICS_ZOO_ROOT}/pyzoo/zoo/examples/pytorch/train/SimpleTrainingExample.py
-exit_status=$?
-unset MASTER
-unset SPARK_DRIVER_MEMORY
-if [ $exit_status -ne 0 ];
-then
-    clear_up
-    echo "pytorch SimpleTrainingExample failed"
-    exit $exit_status
-fi
-
-echo "start example test for pytorch mnist training"
-export SPARK_DRIVER_MEMORY=10g
-export MASTER=local[1]
-python ${ANALYTICS_ZOO_ROOT}/pyzoo/zoo/examples/pytorch/train/Lenet_mnist.py
-exit_status=$?
-unset MASTER
-unset SPARK_DRIVER_MEMORY
-if [ $exit_status -ne 0 ];
-then
-    clear_up
-    echo "pytorch mnist training failed"
-    exit $exit_status
-fi
-
-echo "start example test for pytorch resnet finetune"
-export SPARK_DRIVER_MEMORY=20g
-export MASTER=local[4]
-export ZOO_NUM_MKLTHREADS=all
-python ${ANALYTICS_ZOO_ROOT}/pyzoo/zoo/examples/pytorch/train/resnet_finetune/resnet_finetune.py \
-    analytics-zoo-data/data/dogs-vs-cats/samples
-exit_status=$?
-unset MASTER
-unset ZOO_NUM_MKLTHREADS
-if [ $exit_status -ne 0 ];
-then
-    clear_up
-    echo "pytorch resnet finetune failed"
-    exit $exit_status
-fi
-unset SPARK_DRIVER_MEMORY
-now=$(date "+%s")
-time7=$((now-start))
-
 echo "#8 start example test for tensorflow"
 #timer
 start=$(date "+%s")
@@ -633,8 +583,52 @@ fi
 now=$(date "+%s")
 time16=$((now-start))
 
+echo "#17 start test for orca tf imagesegmentation"
+#timer
+start=$(date "+%s")
+# prepare data
+if [ -f analytics-zoo-data/data/carvana ]
+then
+    echo "analytics-zoo-data/data/carvana already exists"
+else
+    wget $FTP_URI/analytics-zoo-data/data/carvana/train.zip \
+    -P analytics-zoo-data/data/carvana/
+    wget $FTP_URI/analytics-zoo-data/data/carvana/train_masks.zip \
+    -P analytics-zoo-data/data/carvana/
+    wget $FTP_URI/analytics-zoo-data/data/carvana/train_masks.csv.zip \
+    -P analytics-zoo-data/data/carvana/
+fi
 
-# This should be done at the very end after all tests finish.
+# Run the example
+export SPARK_DRIVER_MEMORY=3g
+python ${ANALYTICS_ZOO_ROOT}/pyzoo/zoo/examples/orca/learn/tf/image_segmentation/image_segmentation.py \
+    --file_path analytics-zoo-data/data/carvana --epochs 1 --non_interactive
+exit_status=$?
+if [ $exit_status -ne 0 ];
+then
+    clear_up
+    echo "orca tf imagesegmentation failed"
+    exit $exit_status
+fi
+now=$(date "+%s")
+time17=$((now-start))
+
+echo "#18 start test for orca tf transfer_learning"
+#timer
+start=$(date "+%s")
+#run the example
+export SPARK_DRIVER_MEMORY=3g
+python ${ANALYTICS_ZOO_ROOT}/pyzoo/zoo/examples/orca/learn/tf/transfer_learning/transfer_learning.py
+exit_status=$?
+if [ $exit_status -ne 0 ];
+then
+    clear_up
+    echo "orca tf transfer_learning failed"
+    exit $exit_status
+fi
+now=$(date "+%s")
+time18=$((now-start))
+
 clear_up
 
 echo "#1 textclassification time used: $time1 seconds"
@@ -652,3 +646,6 @@ echo "#13 streaming Object Detection time used: $time13 seconds"
 echo "#14 streaming text classification time used: $time14 seconds"
 echo "#15 start example test for attention time used: $time15 seconds"
 echo "#16 orca data time used:$time16 seconds"
+echo "#17 orca tf imagesegmentation time used:$time17 seconds"
+echo "#18 orca tf transfer_learning time used:$time18 seconds"
+

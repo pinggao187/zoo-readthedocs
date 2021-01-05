@@ -1,4 +1,3 @@
-
 #
 # Copyright 2018 Analytics Zoo Authors.
 #
@@ -34,9 +33,8 @@ class ImagePreprocessing(Preprocessing):
 class ImageBytesToMat(ImagePreprocessing):
     """
     Transform byte array(original image file in byte) to OpenCVMat
-
-    :param byte_key: key that maps byte array
-    :param image_codec: specifying the color type of a loaded image, same as in OpenCV.imread.
+    :param byte_key key that maps byte array
+    :param image_codec specifying the color type of a loaded image, same as in OpenCV.imread.
      By default is Imgcodecs.CV_LOAD_IMAGE_UNCHANGED
     """
     def __init__(self, byte_key="bytes", image_codec=-1, bigdl_type="float"):
@@ -46,8 +44,7 @@ class ImageBytesToMat(ImagePreprocessing):
 class ImagePixelBytesToMat(ImagePreprocessing):
     """
     Transform byte array(pixels in byte) to OpenCVMat
-
-    :param byte_key: key that maps byte array
+    :param byte_key key that maps byte array
     """
     def __init__(self, byte_key="bytes", bigdl_type="float"):
         super(ImagePixelBytesToMat, self).__init__(bigdl_type, byte_key)
@@ -56,12 +53,12 @@ class ImagePixelBytesToMat(ImagePreprocessing):
 class ImageResize(ImagePreprocessing):
     """
     Resize image
-
-    :param resize_h: height after resize
-    :param resize_w: width after resize
-    :param resize_mode: if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR,Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
-    :param use_scale_factor: if true, scale factor fx and fy is used, fx = fy = 0 note that the result of the following are different
-
+    :param resize_h height after resize
+    :param resize_w width after resize
+    :param resize_mode if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR,
+     Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
+    :param use_scale_factor if true, scale factor fx and fy is used, fx = fy = 0
+    note that the result of the following are different
     Imgproc.resize(mat, mat, new Size(resizeWH, resizeWH), 0, 0, Imgproc.INTER_LINEAR)
     Imgproc.resize(mat, mat, new Size(resizeWH, resizeWH))
     """
@@ -70,101 +67,26 @@ class ImageResize(ImagePreprocessing):
         super(ImageResize, self).__init__(bigdl_type, resize_h, resize_w,
                                           resize_mode, use_scale_factor)
 
+
 class ImageBrightness(ImagePreprocessing):
-    """adjust the image brightness.
-    
-    Launches a set of actors which connect via distributed PyTorch and
-    coordinate gradient updates to train the provided model. If Ray is not
-    initialized, TorchTrainer will automatically initialize a local Ray
-    cluster for you. Be sure to run `ray.init(address="auto")` to leverage
-    multi-node training.
-
-    .. code-block:: python
-
-        class MyTrainingOperator(TrainingOperator):
-
-            def setup(self, config):
-                model = nn.Linear(1, 1)
-                optimizer = torch.optim.SGD(
-                    model.parameters(), lr=config.get("lr", 1e-4))
-                loss = torch.nn.MSELoss()
-
-                batch_size = config["batch_size"]
-                train_data, val_data = LinearDataset(2, 5), LinearDataset(2, 5)
-                train_loader = DataLoader(train_data, batch_size=batch_size)
-                val_loader = DataLoader(val_data, batch_size=batch_size)
-
-                self.model, self.optimizer = self.register(
-                    models=model,
-                    optimizers=optimizer,
-                    criterion=loss)
-
-                self.register_data(
-                    train_loader=train_loader,
-                    validation_loader=val_loader)
-
-        trainer = TorchTrainer(
-            training_operator_cls=MyTrainingOperator,
-            config={"batch_size": 32},
-            use_gpu=True
-        )
-        for i in range(4):
-            trainer.train()
-
-    Args:
-        training_operator_cls (type): Custom training operator class
-            that subclasses the TrainingOperator class. This class
-            will be copied onto all remote workers and used to specify
-            training components and custom training and validation operations.
-        initialization_hook (function): A function to call on all training
-            workers when they are first initialized. This could be useful to
-            set environment variables for all the worker processes.
-        config (dict): Custom configuration value to be passed to
-            all operator constructors.    
-        training_operator_cls (type): Custom training operator class
-            that subclasses the TrainingOperator class. This class
-            will be copied onto all remote workers and used to specify
-            training components and custom training and validation operations.
-        initialization_hook (function): A function to call on all training
-            workers when they are first initialized. This could be useful to
-            set environment variables for all the worker processes.
-        config (dict): Custom configuration value to be passed to
-            all operator constructors.
+    """
+    adjust the image brightness
+    :param deltaLow brightness parameter: low bound
+    :param deltaHigh brightness parameter: high bound
     """
     def __init__(self, delta_low, delta_high, bigdl_type="float"):
         super(ImageBrightness, self).__init__(bigdl_type, float(delta_low), float(delta_high))
 
-    def is_local(self):
-        """whether this is a LocalImageSet
-
-        Create a ImageSet from rdds of ndarray.
-
-        Args:
-            training_operator_cls (type): Custom training operator class
-                that subclasses the TrainingOperator class. This class
-                will be copied onto all remote workers and used to specify
-                training components and custom training and validation operations.
-            initialization_hook (function): A function to call on all training
-                workers when they are first initialized. This could be useful to
-                set environment variables for all the worker processes.
-            config (dict): Custom configuration value to be passed to
-                all operator constructors.
-
-        """
-
-        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
- 
 
 class ImageChannelNormalize(ImagePreprocessing):
     """
     image channel normalize
-
-    :param mean_r: mean value in R channel
-    :param mean_g: mean value in G channel
-    :param meanB_b: mean value in B channel
-    :param std_r: std value in R channel
-    :param std_g: std value in G channel
-    :param std_b: std value in B channel
+    :param mean_r mean value in R channel
+    :param mean_g mean value in G channel
+    :param meanB_b mean value in B channel
+    :param std_r std value in R channel
+    :param std_g std value in G channel
+    :param std_b std value in B channel
     """
     def __init__(self, mean_r, mean_g, mean_b, std_r=1.0,
                  std_g=1.0, std_b=1.0, bigdl_type="float"):
@@ -177,16 +99,16 @@ class PerImageNormalize(ImagePreprocessing):
     """
     Normalizes the norm or value range per image, similar to opencv::normalize
     https://docs.opencv.org/ref/master/d2/de8/group__core__array.html
-
     #ga87eef7ee3970f86906d69a92cbf064bd
     ImageNormalize normalizes scale and shift the input features. Various normalize
     methods are supported,
     Eg. NORM_INF, NORM_L1, NORM_L2 or NORM_MINMAX
     Pleas notice it's a per image normalization.
-
-    :param min: lower range boundary in case of the range normalization or norm value to normalize
-    :param max: upper range boundary in case of the range normalization.It is not used for the norm normalization.
-    :param norm_type: normalization type, see opencv:NormTypes.
+    :param min lower range boundary in case of the range normalization or
+    norm value to normalize
+    :param max upper range boundary in case of the range normalization.
+    It is not used for the norm normalization.
+    :param norm_type normalization type, see opencv:NormTypes.
     https://docs.opencv.org/ref/master/d2/de8/group__core__array.html
     #gad12cefbcb5291cf958a85b4b67b6149f
     Default Core.NORM_MINMAX
@@ -198,10 +120,9 @@ class PerImageNormalize(ImagePreprocessing):
 class ImageMatToTensor(ImagePreprocessing):
     """
     MatToTensor
-
-    :param toRGB: BGR to RGB (default is BGR)
-    :param tensorKey: key to store transformed tensor
-    :param format: DataFormat.NCHW or DataFormat.NHWC
+    :param toRGB BGR to RGB (default is BGR)
+    :param tensorKey key to store transformed tensor
+    :param format DataFormat.NCHW or DataFormat.NHWC
     """
     def __init__(self, to_RGB=False, tensor_key="imageTensor",
                  share_buffer=True, format="NCHW", bigdl_type="float"):
@@ -212,10 +133,9 @@ class ImageMatToTensor(ImagePreprocessing):
 class ImageSetToSample(ImagePreprocessing):
     """
     transform imageframe to samples
-
-    :param input_keys: keys that maps inputs (each input should be a tensor)
-    :param target_keys: keys that maps targets (each target should be a tensor)
-    :param sample_key: key to store sample
+    :param input_keys keys that maps inputs (each input should be a tensor)
+    :param target_keys keys that maps targets (each target should be a tensor)
+    :param sample_key key to store sample
     """
     def __init__(self, input_keys=["imageTensor"], target_keys=["label"],
                  sample_key="sample", bigdl_type="float"):
@@ -225,9 +145,8 @@ class ImageSetToSample(ImagePreprocessing):
 class ImageHue(ImagePreprocessing):
     """
     adjust the image hue
-
-    :param deltaLow: hue parameter: low bound
-    :param deltaHigh: hue parameter: high bound
+    :param deltaLow hue parameter: low bound
+    :param deltaHigh hue parameter: high bound
     """
     def __init__(self, delta_low, delta_high, bigdl_type="float"):
         super(ImageHue, self).__init__(bigdl_type, float(delta_low), float(delta_high))
@@ -236,7 +155,6 @@ class ImageHue(ImagePreprocessing):
 class ImageSaturation(ImagePreprocessing):
     """
     adjust the image Saturation
-
     :param deltaLow brightness parameter: low bound
     :param deltaHigh brightness parameter: high bound
     """
@@ -255,19 +173,18 @@ class ImageChannelOrder(ImagePreprocessing):
 class ImageColorJitter(ImagePreprocessing):
     """
     Random adjust brightness, contrast, hue, saturation
-
-    :param brightness_prob: probability to adjust brightness
-    :param brightness_delta: brightness parameter
-    :param contrast_prob: probability to adjust contrast
-    :param contrast_lower: contrast lower parameter
-    :param contrast_upper: contrast upper parameter
-    :param hue_prob: probability to adjust hue
-    :param hue_delta: hue parameter
-    :param saturation_prob: probability to adjust saturation
-    :param saturation_lower: saturation lower parameter
-    :param saturation_upper: saturation upper parameter
-    :param random_order_prob: random order for different operation
-    :param shuffle:  shuffle the transformers
+    :param brightness_prob probability to adjust brightness
+    :param brightness_delta brightness parameter
+    :param contrast_prob probability to adjust contrast
+    :param contrast_lower contrast lower parameter
+    :param contrast_upper contrast upper parameter
+    :param hue_prob probability to adjust hue
+    :param hue_delta hue parameter
+    :param saturation_prob probability to adjust saturation
+    :param saturation_lower saturation lower parameter
+    :param saturation_upper saturation upper parameter
+    :param random_order_prob random order for different operation
+    :param shuffle  shuffle the transformers
     """
     def __init__(self, brightness_prob=0.5,
                  brightness_delta=32.0,
@@ -293,31 +210,15 @@ class ImageColorJitter(ImagePreprocessing):
 
 class ImageAspectScale(ImagePreprocessing):
     """
-    Resize the image, keep the aspect ratio. scale according to the short edge.Randomly apply the preprocessing to some of the input ImageFeatures, with probability specified.E.g. if prob = 0.5, the preprocessing will apply to half of the input ImageFeatures.
-
-    :param min_size: scale size, apply to short edge
-    :param scale_multiple_of: make the scaled size multiple of some value
-    :param max_size: max size after scale
-    :param resize_mode: if resizeMode = -1, random select a mode from (Imgproc.INTER_LINEAR, Imgproc.INTER_CUBIC, Imgproc.INTER_AREA, Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
-    :param use_scale_factor: if true, scale factor fx and fy is used, fx = fy = 0
-    :param min_scale: control the minimum scale up for image
-    :return: a DistributedImageSet
-
-    >>> import numpy as np
-    >>> from bigdl.util.common import callBigDlFunc
-    >>> from numpy.testing import assert_allclose
-    >>> np.random.seed(123)
-    >>> sample = Sample.from_ndarray(np.random.random((2,3)), np.random.random((2,3)))
-    >>> sample_back = callBigDlFunc("float", "testSample", sample)
-    >>> assert_allclose(sample.features[0].to_ndarray(), sample_back.features[0].to_ndarray())
-    >>> assert_allclose(sample.label.to_ndarray(), sample_back.label.to_ndarray())
-    >>> expected_feature_storage = np.array(([[0.69646919, 0.28613934, 0.22685145], [0.55131477, 0.71946895, 0.42310646]]))
-    >>> expected_feature_shape = np.array([2, 3])
-    >>> expected_label_storage = np.array(([[0.98076421, 0.68482971, 0.48093191], [0.39211753, 0.343178, 0.72904968]]))
-    >>> expected_label_shape = np.array([2, 3])
-    >>> assert_allclose(sample.features[0].storage, expected_feature_storage, rtol=1e-6, atol=1e-6)
-    >>> assert_allclose(sample.features[0].shape, expected_feature_shape)
-
+    Resize the image, keep the aspect ratio. scale according to the short edge
+    :param min_size scale size, apply to short edge
+    :param scale_multiple_of make the scaled size multiple of some value
+    :param max_size max size after scale
+    :param resize_mode if resizeMode = -1, random select a mode from
+    (Imgproc.INTER_LINEAR, Imgproc.INTER_CUBIC, Imgproc.INTER_AREA,
+    Imgproc.INTER_NEAREST, Imgproc.INTER_LANCZOS4)
+    :param use_scale_factor if true, scale factor fx and fy is used, fx = fy = 0
+    :aram min_scale control the minimum scale up for image
     """
 
     def __init__(self, min_size, scale_multiple_of=1, max_size=1000,
@@ -327,26 +228,13 @@ class ImageAspectScale(ImagePreprocessing):
                                                min_size, scale_multiple_of, max_size,
                                                resize_mode, use_scale_factor, min_scale)
 
-    def is_local(self):
-        """
-        whether this is a LocalImageSet
-        Create a ImageSet from rdds of ndarray.
-
-        :param image_rdd: a rdd of ndarray, each ndarray should has dimension of 3 or 4 (3D images)
-        :param label_rdd: a rdd of ndarray
-        :return: a DistributedImageSet
-
-        """
-
-        return callZooFunc(self.bigdl_type, "isLocalImageSet", self.value)
 
 class ImageRandomAspectScale(ImagePreprocessing):
     """
     resize the image by randomly choosing a scale
-
-    :param scales: array of scale options that for random choice
-    :param scaleMultipleOf: Resize test images so that its width and height are multiples of
-    :param maxSize: Max pixel size of the longest side of a scaled input image
+    :param scales array of scale options that for random choice
+    :param scaleMultipleOf Resize test images so that its width and height are multiples of
+    :param maxSize Max pixel size of the longest side of a scaled input image
     """
     def __init__(self, scales, scale_multiple_of=1, max_size=1000, bigdl_type="float"):
         super(ImageRandomAspectScale, self).__init__(bigdl_type,
@@ -357,7 +245,7 @@ class ImagePixelNormalize(ImagePreprocessing):
     """
     Pixel level normalizer, data(i) = data(i) - mean(i)
 
-    :param means: pixel level mean, following H * W * C order
+    :param means pixel level mean, following H * W * C order
     """
 
     def __init__(self, means, bigdl_type="float"):
@@ -369,9 +257,9 @@ class ImageRandomCrop(ImagePreprocessing):
     Random crop a `cropWidth` x `cropHeight` patch from an image.
     The patch size should be less than the image size.
 
-    :param crop_width: width after crop
-    :param crop_height: height after crop
-    :param is_clip whether: to clip the roi to image boundaries
+    :param crop_width width after crop
+    :param crop_height height after crop
+    :param is_clip whether to clip the roi to image boundaries
     """
 
     def __init__(self, crop_width, crop_height, is_clip=True, bigdl_type="float"):
@@ -383,10 +271,9 @@ class ImageCenterCrop(ImagePreprocessing):
     """
     Crop a `cropWidth` x `cropHeight` patch from center of image.
     The patch size should be less than the image size.
-
-    :param crop_width: width after crop
-    :param crop_height: height after crop
-    :param is_clip:  clip cropping box boundary
+    :param crop_width width after crop
+    :param crop_height height after crop
+    :param is_clip  clip cropping box boundary
     """
 
     def __init__(self, crop_width, crop_height, is_clip=True, bigdl_type="float"):
@@ -398,12 +285,12 @@ class ImageFixedCrop(ImagePreprocessing):
     """
     Crop a fixed area of image
 
-    :param x1: start in width
-    :param y1: start in height
-    :param x2: end in width
-    :param y2: end in height
-    :param normalized: whether args are normalized, i.e. in range [0, 1]
-    :param is_clip: whether to clip the roi to image boundaries
+    :param x1 start in width
+    :param y1 start in height
+    :param x2 end in width
+    :param y2 end in height
+    :param normalized whether args are normalized, i.e. in range [0, 1]
+    :param is_clip whether to clip the roi to image boundaries
     """
 
     def __init__(self, x1, y1, x2, y2, normalized=True, is_clip=True, bigdl_type="float"):
@@ -415,11 +302,11 @@ class ImageExpand(ImagePreprocessing):
     """
     expand image, fill the blank part with the meanR, meanG, meanB
 
-    :param means_r: means in R channel
-    :param means_g: means in G channel
-    :param means_b: means in B channel
-    :param min_expand_ratio: min expand ratio
-    :param max_expand_ratio: max expand ratio
+    :param means_r means in R channel
+    :param means_g means in G channel
+    :param means_b means in B channel
+    :param min_expand_ratio min expand ratio
+    :param max_expand_ratio max expand ratio
     """
 
     def __init__(self, means_r=123, means_g=117, means_b=104,
@@ -432,12 +319,11 @@ class ImageExpand(ImagePreprocessing):
 class ImageFiller(ImagePreprocessing):
     """
     Fill part of image with certain pixel value
-
-    :param start_x: start x ratio
-    :param start_y: start y ratio
-    :param end_x: end x ratio
-    :param end_y: end y ratio
-    :param value: filling value
+    :param start_x start x ratio
+    :param start_y start y ratio
+    :param end_x end x ratio
+    :param end_y end y ratio
+    :param value filling value
     """
 
     def __init__(self, start_x, start_y, end_x, end_y, value=255, bigdl_type="float"):
@@ -490,9 +376,8 @@ class ImageRandomPreprocessing(Preprocessing):
     """
     Randomly apply the preprocessing to some of the input ImageFeatures, with probability specified.
     E.g. if prob = 0.5, the preprocessing will apply to half of the input ImageFeatures.
-
-    :param preprocessing: preprocessing to apply.
-    :param prob: probability to apply the preprocessing action.
+    :param preprocessing preprocessing to apply.
+    :param prob probability to apply the preprocessing action.
     """
 
     def __init__(self, preprocessing, prob, bigdl_type="float"):

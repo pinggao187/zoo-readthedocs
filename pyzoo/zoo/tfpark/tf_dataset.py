@@ -15,6 +15,7 @@
 #
 
 import numpy as np
+import tensorflow as tf
 import sys
 import functools
 import logging
@@ -596,7 +597,7 @@ class TFDataset(object):
                              sequential_order=False,
                              shuffle=True,
                              remove_checking=False, batch_outside=False,
-                             inter_threads=None, intra_threads=None):
+                             inter_threads=None, intra_threads=None, auto_shard_files=False):
         """
         Create a TFDataset from a tf.data.Dataset.
 
@@ -627,7 +628,7 @@ class TFDataset(object):
         return TFDataDataset(dataset, batch_size, batch_per_thread,
                              hard_code_batch_size, validation_dataset,
                              sequential_order, shuffle, remove_checking, batch_outside,
-                             inter_threads, intra_threads)
+                             inter_threads, intra_threads, auto_shard_files=auto_shard_files)
 
     @staticmethod
     def from_dataframe(df, feature_cols, labels_cols=None, batch_size=-1,
@@ -661,6 +662,21 @@ class TFDataset(object):
         return DataFrameDataset(df, feature_cols, labels_cols, batch_size,
                                 batch_per_thread, hard_code_batch_size, validation_df,
                                 sequential_order, shuffle)
+
+
+def _tf_get_types(dataset):
+    import tensorflow as tf
+    return tf.compat.v1.data.get_output_types(dataset)
+
+
+def _tf_get_shapes(dataset):
+    import tensorflow as tf
+    return tf.compat.v1.data.get_output_shapes(dataset)
+
+
+def _tf_make_iterator(dataset):
+    import tensorflow as tf
+    return tf.compat.v1.data.make_initializable_iterator(dataset)
 
 
 class TFDataDataset(TFDataset):
@@ -699,7 +715,9 @@ class TFDataDataset(TFDataset):
                  validation_dataset=None,
                  sequential_order=False, shuffle=True,
                  remove_checking=False, batch_outside=False,
-                 inter_threads=None, intra_threads=None):
+                 inter_threads=None, intra_threads=None, auto_shard_files=False):
+
+        self.auto_shard_files = auto_shard_files
 
         from tensorflow.python.data.ops import dataset_ops
         import tensorflow as tf
@@ -733,17 +751,17 @@ class TFDataDataset(TFDataset):
             from tensorflow.python.keras.engine import training_utils
             training_utils.verify_dataset_shuffled(tf_data_dataset)
 
-        flatten_shapes = nest.flatten(tf.compat.v1.data.get_output_shapes(tf_data_dataset))
+        flatten_shapes = nest.flatten(_tf_get_shapes(tf_data_dataset))
         if batch_outside:
             flatten_shapes = [shape[1:] for shape in flatten_shapes]
 
-        flatten_types = nest.flatten(tf.compat.v1.data.get_output_types(tf_data_dataset))
+        flatten_types = nest.flatten(_tf_get_types(tf_data_dataset))
 
         flatten_tensor_structure = [TensorMeta(dtype=flatten_types[i],
                                                shape=list(flatten_shapes[i]),
                                                name="zoo_input_{}".format(i))
                                     for i in range(len(flatten_shapes))]
-        structure = tf.compat.v1.data.get_output_types(tf_data_dataset)
+        structure = _tf_get_types(tf_data_dataset)
         if isinstance(structure, tf.DType):
             structure = (structure,)
         tensor_structure = nest.pack_sequence_as(structure,
@@ -792,18 +810,23 @@ class TFDataDataset(TFDataset):
 
         shard_index = tf.placeholder(dtype=tf.int64, shape=())
         from tensorflow.python.distribute.input_ops import auto_shard_dataset
-        tf_data_dataset = auto_shard_dataset(tf_data_dataset, self._shard_num, shard_index)
+        if self.auto_shard_files:
+            tf_data_dataset = auto_shard_dataset(tf_data_dataset, self._shard_num, shard_index)
+        else:
+            tf_data_dataset = tf_data_dataset.shard(self._shard_num, shard_index)
         if validation_dataset is not None:
-            validation_dataset = auto_shard_dataset(validation_dataset, self._shard_num,
-                                                    shard_index)
+            if self.auto_shard_files:
+                validation_dataset = auto_shard_dataset(validation_dataset, self._shard_num,
+                                                        shard_index)
+            else:
+                validation_dataset = validation_dataset.shard(self._shard_num, shard_index)
 
         self.shard_index = shard_index
         self.train_dataset = tf_data_dataset
-        self.train_iterator = tf.compat.v1.data.make_initializable_iterator(self.train_dataset)
+        self.train_iterator = _tf_make_iterator(self.train_dataset)
         self.train_next_ops = nest.flatten(self.train_iterator.get_next())
         self.output_types = [t.as_datatype_enum
-                             for t in nest.flatten(
-                                 tf.compat.v1.data.get_output_types(self.train_dataset))]
+                             for t in nest.flatten(_tf_get_types(self.train_dataset))]
 
         self.validation_dataset = validation_dataset
         self.validation_iterator = None
@@ -812,7 +835,7 @@ class TFDataDataset(TFDataset):
         self._train_init_op_name = self.train_iterator.initializer.name
         self._train_output_names = [op.name for op in self.train_next_ops]
         if validation_dataset is not None:
-            self.validation_iterator = tf.compat.v1.data.make_initializable_iterator(
+            self.validation_iterator = _tf_make_iterator(
                 self.validation_dataset)
             self.validation_next_ops = nest.flatten(self.validation_iterator.get_next())
             self._val_init_op_name = self.validation_iterator.initializer.name
@@ -826,12 +849,7 @@ class TFDataDataset(TFDataset):
         self.graph_def = bytearray(self.graph.as_graph_def().SerializeToString())
 
     def _get_prediction_data(self):
-        jvalue = callZooFunc("float", "createMiniBatchRDDFromTFDataset",
-                             self.graph_def, self._train_init_op_name, self.table_init_name,
-                             self._train_output_names,
-                             self.output_types, self.shard_index.name)
-        rdd = jvalue.value().toJavaRDD()
-        return rdd
+        raise Exception("TFDataDataset cannot be used for prediction")
 
     def _get_evaluation_data(self):
 
@@ -1166,6 +1184,34 @@ class TFNdarrayDataset(TFDataset):
                                 val_rdd, sequential_order=sequential_order, shuffle=shuffle)
 
 
+def convert_row_to_numpy(row, schema, feature_cols, labels_cols):
+    def convert_for_cols(row, cols):
+        import pyspark.sql.types as df_types
+        result = []
+        for name in cols:
+            feature_type = schema[name].dataType
+            if DataFrameDataset.is_scalar_type(feature_type):
+                result.append(np.array(row[name]))
+            elif isinstance(feature_type, df_types.ArrayType):
+                result.append(np.array(row[name]))
+            elif isinstance(row[name], DenseVector):
+                result.append(row[name].values)
+            else:
+                assert isinstance(row[name], SparseVector), \
+                    "unsupported field {}, data {}".format(schema[name], row[name])
+                result.append(row[name].toArray())
+        if len(result) == 1:
+            return result[0]
+        return result
+
+    features = convert_for_cols(row, feature_cols)
+    if labels_cols:
+        labels = convert_for_cols(row, labels_cols)
+        return (features, labels)
+    else:
+        return (features,)
+
+
 class DataFrameDataset(TFNdarrayDataset):
     @staticmethod
     def df_datatype_to_tf(dtype):
@@ -1240,37 +1286,95 @@ class DataFrameDataset(TFNdarrayDataset):
         else:
             tensor_structure = (feature_meta,)
 
-        def convert(row):
-
-            def convert_for_cols(row, cols):
-                import pyspark.sql.types as df_types
-                result = []
-                for name in cols:
-                    feature_type = schema[name].dataType
-                    if DataFrameDataset.is_scalar_type(feature_type):
-                        result.append(np.array(row[name]))
-                    elif isinstance(feature_type, df_types.ArrayType):
-                        result.append(np.array(row[name]))
-                    elif isinstance(row[name], DenseVector):
-                        result.append(row[name].values)
-                    else:
-                        assert isinstance(row[name], SparseVector), \
-                            "unsupported field {}, data {}".format(schema[name], row[name])
-                        result.append(row[name].toArray())
-                if len(result) == 1:
-                    return result[0]
-                return result
-
-            features = convert_for_cols(row, feature_cols)
-            if labels_cols:
-                labels = convert_for_cols(row, labels_cols)
-                return (features, labels)
-            else:
-                return (features,)
-
-        rdd = selected_df.rdd.map(lambda row: convert(row))
-        val_rdd = validation_df.rdd.map(lambda row: convert(row)) if validation_df else None
+        rdd = selected_df.rdd.map(lambda row: convert_row_to_numpy(row,
+                                                                   schema,
+                                                                   feature_cols,
+                                                                   labels_cols))
+        if validation_df is not None:
+            val_rdd = validation_df.rdd.map(lambda row: convert_row_to_numpy(row,
+                                                                             schema,
+                                                                             feature_cols,
+                                                                             labels_cols))
+        else:
+            val_rdd = None
 
         super(DataFrameDataset, self).__init__(rdd, tensor_structure, batch_size,
                                                batch_per_thread, hard_code_batch_size,
                                                val_rdd, sequential_order, shuffle)
+
+
+def _standarize_feature_label_dataset(dataset, model):
+    input_names = model.input_names
+    output_names = model.output_names
+
+    def _process_labels(ys):
+        if isinstance(ys, dict):
+            return {k: np.expand_dims(y, axis=-1) if y.ndim == 0 else y for k, y in ys.items()}
+        elif isinstance(ys, list):
+            return [np.expand_dims(y, axis=-1) if y.ndim == 0 else y for y in ys]
+        elif isinstance(ys, tuple):
+            return tuple([np.expand_dims(y, axis=-1) if y.ndim == 0 else y for y in ys])
+        else:
+            return np.expand_dims(ys, axis=-1) if ys.ndim == 0 else ys
+
+    def _training_reorder(x, input_names, output_names):
+        assert isinstance(x, tuple)
+
+        return (_reorder(x[0], input_names), _reorder(x[1], output_names))
+
+    def _reorder(x, names):
+        if isinstance(x, dict):
+            return [x[name] for name in names]
+        elif isinstance(x, list) or isinstance(x, tuple):
+            return x
+        else:
+            return [x]
+
+    rdd = dataset.rdd.map(lambda x: (x[0], _process_labels(x[1])))\
+        .map(lambda sample: _training_reorder(sample, input_names, output_names))
+    if dataset.val_rdd is not None:
+        val_rdd = dataset.val_rdd.map(lambda x: (x[0], _process_labels(x[1])))\
+            .map(lambda sample: _training_reorder(sample, input_names, output_names))
+    else:
+        val_rdd = None
+    tensor_structure = _training_reorder(dataset.tensor_structure, input_names, output_names)
+    new_dataset = TFNdarrayDataset(rdd, tensor_structure, dataset.batch_size,
+                                   -1, dataset.hard_code_batch_size, val_rdd)
+    new_dataset.batch_per_thread = dataset.batch_per_thread
+    return new_dataset
+
+
+def _standarize_feature_dataset(dataset, model):
+    input_names = model.input_names
+
+    def _reorder(x, names):
+        if isinstance(x, dict):
+            return [x[name] for name in names]
+        elif isinstance(x, list):
+            return x
+        elif isinstance(x, tuple):
+            return list(x)
+        return [x]
+
+    rdd = dataset.rdd.map(lambda sample: _reorder(sample, input_names))
+    feature_schema = _reorder(dataset.tensor_structure[0], input_names)
+
+    dataset = TFNdarrayDataset(rdd, feature_schema, -1,
+                               dataset.batch_per_thread, dataset.hard_code_batch_size)
+    return dataset
+
+
+def _standardize_keras_target_data(x, ys):
+    def check_y_dims(y):
+        return y is not None and len(y.shape) == 0
+
+    if isinstance(ys, dict):
+        ys = {k: tf.expand_dims(y, axis=0) if check_y_dims(y) else y for k, y in ys.items()}
+    elif isinstance(ys, list):
+        ys = [tf.expand_dims(y, axis=0) if check_y_dims(y) else y for y in ys]
+    elif isinstance(ys, tuple):
+        ys = tuple(tf.expand_dims(y, axis=0) if check_y_dims(y) else y for y in ys)
+    else:
+        ys = tf.expand_dims(ys, axis=0) if check_y_dims(ys) else ys
+
+    return x, ys

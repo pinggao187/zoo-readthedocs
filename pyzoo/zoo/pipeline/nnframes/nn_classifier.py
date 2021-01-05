@@ -14,12 +14,17 @@
 # limitations under the License.
 #
 
+import json
+from bigdl.nn.layer import Layer
 from pyspark.ml.param.shared import *
 from pyspark.ml.wrapper import JavaModel, JavaEstimator, JavaTransformer
+from pyspark.ml.util import MLWritable, MLReadable, JavaMLWriter
 from bigdl.optim.optimizer import SGD
-from zoo.common.utils import callZooFunc
+from zoo.common.utils import callZooFunc, put_local_file_to_remote
 from bigdl.util.common import *
 from zoo.feature.common import *
+from zoo import init_nncontext
+
 
 if sys.version >= '3':
     long = int
@@ -440,7 +445,8 @@ class NNEstimator(JavaEstimator, HasFeaturesCol, HasLabelCol, HasPredictionCol, 
         # explicity reset SamplePreprocessing even though java_model already has the preprocessing,
         # so that python NNModel also has sample_preprocessing
         estPreprocessing = self.getSamplePreprocessing()
-        nnModel = NNModel(model=self.model, feature_preprocessing=None, jvalue=java_model,
+        model = Layer.from_jvalue(java_model.getModel(), bigdl_type=self.bigdl_type)
+        nnModel = NNModel(model=model, feature_preprocessing=None, jvalue=java_model,
                           bigdl_type=self.bigdl_type) \
             .setSamplePreprocessing(ChainedPreprocessing([ToTuple(), estPreprocessing]))
 
@@ -449,9 +455,27 @@ class NNEstimator(JavaEstimator, HasFeaturesCol, HasLabelCol, HasPredictionCol, 
             .setBatchSize(java_model.getBatchSize())
         return nnModel
 
+    def setFeaturesCol(self, value):
+        """
+        Sets the value of :py:attr:`featuresCol`.
+        """
+        return self._set(featuresCol=value)
 
-class NNModel(JavaTransformer, HasFeaturesCol, HasPredictionCol, HasBatchSize,
-              HasSamplePreprocessing, JavaValue):
+    def setPredictionCol(self, value):
+        """
+        Sets the value of :py:attr:`predictionCol`.
+        """
+        return self._set(predictionCol=value)
+
+    def setLabelCol(self, value):
+        """
+        Sets the value of :py:attr:`labelCol`.
+        """
+        return self._set(labelCol=value)
+
+
+class NNModel(JavaTransformer, MLWritable, MLReadable, HasFeaturesCol, HasPredictionCol,
+              HasBatchSize, HasSamplePreprocessing, JavaValue):
     """
     NNModel extends Spark ML Transformer and supports BigDL model with Spark DataFrame.
 
@@ -499,15 +523,51 @@ class NNModel(JavaTransformer, HasFeaturesCol, HasPredictionCol, HasBatchSize,
         self.bigdl_type = bigdl_type
         self.setBatchSize(self.value.getBatchSize())
 
-    def save(self, path):
-        self._transfer_params_to_java()
-        callZooFunc(self.bigdl_type, "saveNNModel", self.value, path)
-        return self
+    def write(self):
+        return NNModelWriter(self)
 
     @staticmethod
     def load(path):
         jvalue = callZooFunc("float", "loadNNModel", path)
         return NNModel(model=None, feature_preprocessing=None, jvalue=jvalue)
+
+    def setFeaturesCol(self, value):
+        """
+        Sets the value of :py:attr:`featuresCol`.
+        """
+        return self._set(featuresCol=value)
+
+    def setPredictionCol(self, value):
+        """
+        Sets the value of :py:attr:`predictionCol`.
+        """
+        return self._set(predictionCol=value)
+
+
+class NNModelWriter(JavaMLWriter):
+    def __init__(self, instance):
+        super(NNModelWriter, self).__init__(instance)
+
+    def save(self, path):
+        """Save the ML instance to the input path."""
+        super(NNModelWriter, self).save(path)
+        sc = init_nncontext()
+        # change class name in metadata to python class name
+        metadata_path = os.path.join(path, "metadata")
+        metadataStr = sc.textFile(metadata_path, 1).first()
+        metadata = json.loads(metadataStr)
+        py_type = metadata['class'].replace("com.intel.analytics.zoo", "zoo")
+        metadata['class'] = py_type
+        metadata_json = json.dumps(metadata, separators=[',', ':'])
+        # replace old metadata
+        temp_dir = tempfile.mkdtemp()
+        temp_meta_path = os.path.join(temp_dir, "metadata")
+        sc.parallelize([metadata_json], 1).saveAsTextFile(temp_meta_path)
+        for file in os.listdir(temp_meta_path):
+            put_local_file_to_remote(os.path.join(temp_meta_path, file),
+                                     os.path.join(metadata_path, file), True)
+        import shutil
+        shutil.rmtree(temp_dir)
 
 
 class NNClassifier(NNEstimator):
@@ -546,7 +606,8 @@ class NNClassifier(NNEstimator):
         # explicity reset SamplePreprocessing even though java_model already has the preprocessing,
         # so that python NNClassifierModel also has sample_preprocessing
         estPreprocessing = self.getSamplePreprocessing()
-        classifierModel = NNClassifierModel(model=self.model, feature_preprocessing=None,
+        model = Layer.from_jvalue(java_model.getModel(), bigdl_type=self.bigdl_type)
+        classifierModel = NNClassifierModel(model=model, feature_preprocessing=None,
                                             jvalue=java_model, bigdl_type=self.bigdl_type) \
             .setSamplePreprocessing(ChainedPreprocessing([ToTuple(), estPreprocessing]))
 
