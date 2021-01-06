@@ -46,9 +46,9 @@ source_suffix = {'.rst': 'restructuredtext',
 
 master_doc = 'index'
 
-project = 'analytics-zoo'
-copyright = '2020, analytice-zoo'
-author = 'analytice-zoo'
+project = 'Analytics Zoo'
+copyright = '2020, Analytice Zoo'
+author = 'Analytice Zoo'
 
 # The short X.Y version
 #version = ''
@@ -138,7 +138,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'analytics-zoodoc'
+htmlhelp_basename = 'Analytics Zoo Documentation'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -175,7 +175,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'analytics-zoo', 'analytics-zoo Documentation',
+    (master_doc, 'Analytics Zoo', 'Analytics Zoo Documentation',
      [author], 1)
 ]
 
