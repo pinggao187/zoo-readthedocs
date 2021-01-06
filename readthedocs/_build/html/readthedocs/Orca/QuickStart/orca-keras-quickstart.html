@@ -1,0 +1,336 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Keras 2.3 Quickstart &mdash; Analytics Zoo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script type="text/javascript" src="../../../_static/clipboard.min.js"></script>
+        <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="PyTorch Quickstart" href="orca-pytorch-quickstart.html" />
+    <link rel="prev" title="TensorFlow 1.15 Quickstart" href="orca-tf-quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Analytics Zoo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Quick Start</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="orca-tf-quickstart.html">TensorFlow 1.15 Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Keras 2.3 Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#step-0-prepare-environment"><strong>Step 0: Prepare Environment</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-1-init-orca-context"><strong>Step 1: Init Orca Context</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-2-define-the-model"><strong>Step 2: Define the Model</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-3-define-train-dataset"><strong>Step 3: Define Train Dataset</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-4-fit-with-orca-estimator"><strong>Step 4: Fit with Orca Estimator</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="orca-pytorch-quickstart.html">PyTorch Quickstart</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/python.html">Python User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/colab.html">Colab User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/docker.html">Docker User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/k8s.html">K8s User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/hadoop.html">Hadoop/YARN User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/scala.html">Scala User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/develop.html">Developer Guide</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Orca Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Overview/orca-context.html">Orca Context</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Overview/data-parallel-processing.html">Distributed Data-Parallel Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Overview/distributed-training-inference.html">Distributed Training and Inference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Analytics Zoo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Keras 2.3 Quickstart</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/readthedocs/Orca/QuickStart/orca-keras-quickstart.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="keras-2-3-quickstart">
+<h1>Keras 2.3 Quickstart<a class="headerlink" href="#keras-2-3-quickstart" title="Permalink to this headline">¶</a></h1>
+<hr class="docutils" />
+<p><strong>In this guide we will describe how to scale out Keras (v2.3) programs using Orca in 4 simple steps.</strong></p>
+<div class="section" id="step-0-prepare-environment">
+<h2><strong>Step 0: Prepare Environment</strong><a class="headerlink" href="#step-0-prepare-environment" title="Permalink to this headline">¶</a></h2>
+<p>We recommend using <a class="reference external" href="https://docs.conda.io/projects/conda/en/latest/user-guide/install/">Conda</a> to prepare the environment. Please refer to the <a class="reference external" href="../PythonUserGuide/install/">install guide</a> for more details.</p>
+<p><strong>Note:</strong> Conda environment is required to run on the distributed cluster, but not strictly necessary for running on the local machine.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda create -n zoo <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.7 <span class="c1"># &quot;zoo&quot; is conda environment name, you can use any name you like.</span>
+conda activate zoo
+pip install analytics_zoo-<span class="si">${</span><span class="nv">VERSION</span><span class="si">}</span> <span class="c1"># install either version 0.9 or latest nightly build</span>
+pip install <span class="nv">tensorflow</span><span class="o">==</span><span class="m">1</span>.15.0
+pip install tensorflow-datasets<span class="o">==</span><span class="m">2</span>.0
+pip install psutil
+pip install pandas
+pip install scikit-learn
+</pre></div>
+</div>
+<p><strong>Note:</strong> The original <a class="reference external" href="https://github.com/intel-analytics/analytics-zoo/blob/master/pyzoo/zoo/examples/orca/learn/tf/lenet/lenet_mnist_keras.py">source code</a> for the tutorial below only supports TensorFlow 1.15.</p>
+</div>
+<div class="section" id="step-1-init-orca-context">
+<h2><strong>Step 1: Init Orca Context</strong><a class="headerlink" href="#step-1-init-orca-context" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cluster_mode</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+    <span class="n">init_orca_context</span><span class="p">(</span><span class="n">cluster_mode</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span><span class="c1"># run in local mode</span>
+<span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">cluster_mode</span> <span class="o">==</span> <span class="s2">&quot;yarn&quot;</span><span class="p">:</span>
+    <span class="n">init_orca_context</span><span class="p">(</span><span class="n">cluster_mode</span><span class="o">=</span><span class="s2">&quot;k8s&quot;</span><span class="p">,</span> <span class="n">num_nodes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># run on K8s cluster</span>
+<span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">cluster_mode</span> <span class="o">==</span> <span class="s2">&quot;yarn&quot;</span><span class="p">:</span>
+    <span class="n">init_orca_context</span><span class="p">(</span><span class="n">cluster_mode</span><span class="o">=</span><span class="s2">&quot;yarn-client&quot;</span><span class="p">,</span> <span class="n">num_nodes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">driver_memory</span><span class="o">=</span><span class="s2">&quot;6g&quot;</span><span class="p">)</span> <span class="c1"># run on Hadoop YARN cluster</span>
+</pre></div>
+</div>
+<p>This is the only place where you need to specify local or distributed mode. View <a class="reference external" href="./context">Orca Context</a> for more details.</p>
+<p><strong>Note:</strong> You should <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">HADOOP_CONF_DIR=/path/to/hadoop/conf/dir</span></code> when you run on Hadoop YARN cluster.</p>
+</div>
+<div class="section" id="step-2-define-the-model">
+<h2><strong>Step 2: Define the Model</strong><a class="headerlink" href="#step-2-define-the-model" title="Permalink to this headline">¶</a></h2>
+<p>You may define your model, loss and metrics in the same way as in any standard (single node) Keras program.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">keras</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
+                         <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">MaxPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
+                         <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">MaxPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">),</span>
+     <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">),</span>
+     <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">(),</span>
+              <span class="n">loss</span><span class="o">=</span><span class="s1">&#39;sparse_categorical_crossentropy&#39;</span><span class="p">,</span>
+              <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="step-3-define-train-dataset">
+<h2><strong>Step 3: Define Train Dataset</strong><a class="headerlink" href="#step-3-define-train-dataset" title="Permalink to this headline">¶</a></h2>
+<p>You can define the dataset using standard <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset">tf.data.Dataset</a>. Orca also supports <a class="reference external" href="https://spark.apache.org/docs/latest/sql-programming-guide.html">Spark DataFrame</a> and <a class="reference external" href="./data">Orca XShards</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">tensorflow_datasets</span> <span class="kn">as</span> <span class="nn">tfds</span>
+
+<span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+
+<span class="c1"># get DataSet</span>
+<span class="n">mnist_train</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mnist&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="n">dataset_dir</span><span class="p">)</span>
+<span class="n">mnist_test</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mnist&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="n">dataset_dir</span><span class="p">)</span>
+
+<span class="n">mnist_train</span> <span class="o">=</span> <span class="n">mnist_train</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">preprocess</span><span class="p">)</span>
+<span class="n">mnist_test</span> <span class="o">=</span> <span class="n">mnist_test</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">preprocess</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="step-4-fit-with-orca-estimator">
+<h2><strong>Step 4: Fit with Orca Estimator</strong><a class="headerlink" href="#step-4-fit-with-orca-estimator" title="Permalink to this headline">¶</a></h2>
+<p>First, create an Estimator.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zoo.orca.learn.tf.estimator</span> <span class="kn">import</span> <span class="n">Estimator</span>
+
+<span class="n">est</span> <span class="o">=</span> <span class="n">Estimator</span><span class="o">.</span><span class="n">from_keras</span><span class="p">(</span><span class="n">keras_model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, fit and evaluate using the Estimator.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">est</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">mnist_train</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">validation_data</span><span class="o">=</span><span class="n">mnist_test</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">est</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">mnist_test</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>That’s it, the same code can run seamlessly in your local laptop and the distribute K8s or Hadoop cluster.</p>
+<p><strong>Note:</strong> You should call <code class="docutils literal notranslate"><span class="pre">stop_orca_context()</span></code> when your program finishes.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="orca-pytorch-quickstart.html" class="btn btn-neutral float-right" title="PyTorch Quickstart" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="orca-tf-quickstart.html" class="btn btn-neutral float-left" title="TensorFlow 1.15 Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Analytice Zoo
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

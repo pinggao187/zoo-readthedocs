@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>K8s User Guide &mdash; Analytics Zoo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script type="text/javascript" src="../../_static/clipboard.min.js"></script>
+        <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Hadoop/YARN User Guide" href="hadoop.html" />
+    <link rel="prev" title="Docker User Guide" href="docker.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> Analytics Zoo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Quick Start</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/QuickStart/orca-tf-quickstart.html">TensorFlow 1.15 Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/QuickStart/orca-keras-quickstart.html">Keras 2.3 Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/QuickStart/orca-pytorch-quickstart.html">PyTorch Quickstart</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="python.html">Python User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="colab.html">Colab User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker User Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">K8s User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pull-hyper-zoo-docker-image"><strong>1. Pull <code class="docutils literal notranslate"><span class="pre">hyper-zoo</span></code> Docker Image</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#launch-a-k8s-client-container"><strong>2. Launch a K8s Client Container</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-analytics-zoo-examples-on-k8s"><strong>3. Run Analytics Zoo Examples on k8s</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#use-init-orca-context"><strong>3.1 Use <code class="docutils literal notranslate"><span class="pre">init_orca_context</span></code></strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-spark-submit"><strong>3.2 Use <code class="docutils literal notranslate"><span class="pre">spark_submit</span></code></strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#access-logs-and-clear-pods"><strong>3.3 Access logs and clear pods</strong></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hadoop.html">Hadoop/YARN User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scala.html">Scala User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="develop.html">Developer Guide</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Orca Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/Overview/orca-context.html">Orca Context</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/Overview/data-parallel-processing.html">Distributed Data-Parallel Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Orca/Overview/distributed-training-inference.html">Distributed Training and Inference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Analytics Zoo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>K8s User Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/readthedocs/UserGuide/k8s.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="k8s-user-guide">
+<h1>K8s User Guide<a class="headerlink" href="#k8s-user-guide" title="Permalink to this headline">¶</a></h1>
+<hr class="docutils" />
+<div class="section" id="pull-hyper-zoo-docker-image">
+<h2><strong>1. Pull <code class="docutils literal notranslate"><span class="pre">hyper-zoo</span></code> Docker Image</strong><a class="headerlink" href="#pull-hyper-zoo-docker-image" title="Permalink to this headline">¶</a></h2>
+<p>You may pull the prebuilt  Analytics Zoo <code class="docutils literal notranslate"><span class="pre">hyper-zoo</span></code> Image from <a class="reference external" href="https://hub.docker.com/r/intelanalytics/hyper-zoo/tags">Docker Hub</a> as follows:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo docker pull intelanalytics/hyper-zoo:latest
+</pre></div>
+</div>
+<p><strong>Speed up pulling image by adding mirrors</strong></p>
+<p>To speed up pulling the image from DockerHub, you may add the registry-mirrors key and value by editing <code class="docutils literal notranslate"><span class="pre">daemon.json</span></code> (located in <code class="docutils literal notranslate"><span class="pre">/etc/docker/</span></code> folder on Linux):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;registry-mirrors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://&lt;my-docker-mirror-host&gt;&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For instance, users in China may add the USTC mirror as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;registry-mirrors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://docker.mirrors.ustc.edu.cn&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>After that, flush changes and restart docker：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">systemctl</span> <span class="n">daemon</span><span class="o">-</span><span class="n">reload</span>
+<span class="n">sudo</span> <span class="n">systemctl</span> <span class="n">restart</span> <span class="n">docker</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="launch-a-k8s-client-container">
+<h2><strong>2. Launch a K8s Client Container</strong><a class="headerlink" href="#launch-a-k8s-client-container" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="run-analytics-zoo-examples-on-k8s">
+<h2><strong>3. Run Analytics Zoo Examples on k8s</strong><a class="headerlink" href="#run-analytics-zoo-examples-on-k8s" title="Permalink to this headline">¶</a></h2>
+<p><em><strong>Note</strong>: Please make sure <code class="docutils literal notranslate"><span class="pre">kubectl</span></code> has appropriate permission to create, list and delete pod.</em></p>
+<div class="section" id="use-init-orca-context">
+<h3><strong>3.1 Use <code class="docutils literal notranslate"><span class="pre">init_orca_context</span></code></strong><a class="headerlink" href="#use-init-orca-context" title="Permalink to this headline">¶</a></h3>
+<p>We recommend using <code class="docutils literal notranslate"><span class="pre">init_orca_context</span></code> in your code to run on standard K8s clusters. &lt;TODO: add detailed descriptions&gt;</p>
+</div>
+<div class="section" id="use-spark-submit">
+<h3><strong>3.2 Use <code class="docutils literal notranslate"><span class="pre">spark_submit</span></code></strong><a class="headerlink" href="#use-spark-submit" title="Permalink to this headline">¶</a></h3>
+<p>Alternatively, you may use <code class="docutils literal notranslate"><span class="pre">spark_submit</span></code> to run your program on K8s clusters.</p>
+<p><strong>Run Python programs</strong></p>
+<p><strong>Run Jupyter Notebooks</strong></p>
+<p><strong>Run Scala programs</strong></p>
+</div>
+<div class="section" id="access-logs-and-clear-pods">
+<h3><strong>3.3 Access logs and clear pods</strong><a class="headerlink" href="#access-logs-and-clear-pods" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="hadoop.html" class="btn btn-neutral float-right" title="Hadoop/YARN User Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="docker.html" class="btn btn-neutral float-left" title="Docker User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Analytice Zoo
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

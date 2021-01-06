@@ -1,0 +1,377 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Distributed Data-Parallel Processing &mdash; Analytics Zoo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script type="text/javascript" src="../../../_static/clipboard.min.js"></script>
+        <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Distributed Training and Inference" href="distributed-training-inference.html" />
+    <link rel="prev" title="Orca Context" href="orca-context.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Analytics Zoo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Quick Start</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../QuickStart/orca-tf-quickstart.html">TensorFlow 1.15 Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../QuickStart/orca-keras-quickstart.html">Keras 2.3 Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../QuickStart/orca-pytorch-quickstart.html">PyTorch Quickstart</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/python.html">Python User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/colab.html">Colab User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/docker.html">Docker User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/k8s.html">K8s User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/hadoop.html">Hadoop/YARN User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/scala.html">Scala User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../UserGuide/develop.html">Developer Guide</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Orca Overview</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="orca-context.html">Orca Context</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Distributed Data-Parallel Processing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#tensorflow-dataset-and-pytorch-dataloader"><strong>1. TensorFlow Dataset and PyTorch DataLoader</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-creator-function"><strong>1.1. Data Creator Function</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#spark-dataframes"><strong>2. Spark Dataframes</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xshards-distributed-data-parallel-python-processing"><strong>3. XShards (Distributed Data-Parallel Python Processing)</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-parallel-pandas"><strong>3.1 Data-Parallel Pandas</strong></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distributed-training-inference.html">Distributed Training and Inference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Analytics Zoo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Distributed Data-Parallel Processing</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../../_sources/readthedocs/Orca/Overview/data-parallel-processing.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="distributed-data-parallel-processing">
+<h1>Distributed Data-Parallel Processing<a class="headerlink" href="#distributed-data-parallel-processing" title="Permalink to this headline">¶</a></h1>
+<hr class="docutils" />
+<p><strong>Orca provides efficient support of distributed data-parallel processing pipeline, a critical component for large-scale AI applications.</strong></p>
+<div class="section" id="tensorflow-dataset-and-pytorch-dataloader">
+<h2><strong>1. TensorFlow Dataset and PyTorch DataLoader</strong><a class="headerlink" href="#tensorflow-dataset-and-pytorch-dataloader" title="Permalink to this headline">¶</a></h2>
+<p>Orca will seamlessly parallelize the standard <code class="docutils literal notranslate"><span class="pre">tf.data.Dataset</span></code> or <code class="docutils literal notranslate"><span class="pre">torch.utils.data.DataLoader</span></code> pipelines across a large cluster in a data-parallel fashion, which can be directly used for distributed deep learning training, as shown below:</p>
+<p>TensorFlow Dataset:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">tensorflow_datasets</span> <span class="kn">as</span> <span class="nn">tfds</span>
+<span class="kn">from</span> <span class="nn">zoo.orca.learn.tf.estimator</span> <span class="kn">import</span> <span class="n">Estimator</span>
+
+<span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mnist&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="n">dataset_dir</span><span class="p">)</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">preprocess</span><span class="p">)</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="n">est</span> <span class="o">=</span> <span class="n">Estimator</span><span class="o">.</span><span class="n">from_keras</span><span class="p">(</span><span class="n">keras_model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+<span class="n">est</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Pytorch DataLoader:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">transforms</span>
+<span class="kn">from</span> <span class="nn">zoo.orca.learn.pytorch</span> <span class="kn">import</span> <span class="n">Estimator</span>
+
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="s2">&quot;/tmp/mnist&quot;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                       <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                           <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                           <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))</span>
+                       <span class="p">])),</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">est</span> <span class="o">=</span> <span class="n">Estimator</span><span class="o">.</span><span class="n">from_torch</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">torch_model</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">torch_optim</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">torch_criterion</span><span class="p">)</span>
+<span class="n">zoo_estimator</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_loader</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Under the hood, Orca will automatically replicate the <em>TensorFlow Dataset</em> or <em>PyTorch DataLoader</em> pipeline on each node in the cluster, shard the input data, and execute the data pipelines using Apache Spark and/or Ray distributedly.</p>
+<p><em><strong>Note:</strong> Known limitations include:</em></p>
+<ol class="simple">
+<li><em>TensorFlow Dataset pipeline that contains transformations defined in native python function, such as <code class="docutils literal notranslate"><span class="pre">tf.py_func</span></code>, <code class="docutils literal notranslate"><span class="pre">tf.py_function</span></code>
+and <code class="docutils literal notranslate"><span class="pre">tf.numpy_function</span></code> are currently not supported.</em></li>
+<li><em>TensorFlow Dataset pipeline created from generators, such as <code class="docutils literal notranslate"><span class="pre">Dataset.from_generators</span></code> are currently not supported.</em></li>
+<li><em>For TensorFlow Dataset and Pytorch DataLoader pipelines that read from files (including <code class="docutils literal notranslate"><span class="pre">tf.data.TFRecordDataset</span></code> and <code class="docutils literal notranslate"><span class="pre">tf.data.TextLineDataset</span></code>), one needs to ensure that the same file paths can be accessed on every node in the cluster.</em></li>
+</ol>
+<div class="section" id="data-creator-function">
+<h3><strong>1.1. Data Creator Function</strong><a class="headerlink" href="#data-creator-function" title="Permalink to this headline">¶</a></h3>
+<p>Alternatively, the user may also pass a <em>Data Creator Function</em> as the input to the distributed training and inference. Inside the <em>Data Creator Function</em>, the user needs to create and return a <code class="docutils literal notranslate"><span class="pre">tf.data.Dataset</span></code> or <code class="docutils literal notranslate"><span class="pre">torch.utils.data.DataLoader</span></code> object, as shown below.</p>
+<p>TensorFlow:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">tensorflow_datasets</span> <span class="kn">as</span> <span class="nn">tfds</span>
+<span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.</span>
+    <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">train_data_creator</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mnist&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="n">dataset_dir</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">preprocess</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">dataset</span>
+</pre></div>
+</div>
+<p>Pytorch:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">train_data_creator</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span>
+            <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;dir&quot;</span><span class="p">],</span> <span class="n">train</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                           <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                               <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                               <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))</span>
+                           <span class="p">])),</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">],</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_loader</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="spark-dataframes">
+<h2><strong>2. Spark Dataframes</strong><a class="headerlink" href="#spark-dataframes" title="Permalink to this headline">¶</a></h2>
+<p>Orca supports Spark Dataframes as the input to the distributed training, and as the input/output of the distributed inference. Consequently, the user can easily process large-scale dataset using Apache Spark, and directly apply AI models on the distributed (and possibly in-memory) Dataframes without data conversion or serialization.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="s2">&quot;data.parquet&quot;</span><span class="p">)</span>
+<span class="n">est</span> <span class="o">=</span> <span class="n">Estimator</span><span class="o">.</span><span class="n">from_keras</span><span class="p">(</span><span class="n">keras_model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span> <span class="c1"># the model accept two inputs and one label</span>
+<span class="n">est</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+        <span class="n">feature_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="s1">&#39;item&#39;</span><span class="p">],</span> <span class="c1"># specifies which column(s) to be used as inputs</span>
+        <span class="n">labels_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">])</span> <span class="c1"># specifies which column(s) to be used as labels</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="xshards-distributed-data-parallel-python-processing">
+<h2><strong>3. XShards (Distributed Data-Parallel Python Processing)</strong><a class="headerlink" href="#xshards-distributed-data-parallel-python-processing" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">XShards</span></code> in Orca allows the user to process large-scale dataset using <em>existing</em> Pyhton codes in a distributed and data-parallel fashion, as shown below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">zoo.orca.data</span> <span class="kn">import</span> <span class="n">XShards</span>
+
+<span class="n">train_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">20</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">224</span><span class="p">,</span> <span class="mi">224</span><span class="p">))</span>
+<span class="n">train_label_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">train_shards</span> <span class="o">=</span> <span class="n">XShards</span><span class="o">.</span><span class="n">partition</span><span class="p">([</span><span class="n">train_images</span><span class="p">,</span> <span class="n">train_label_images</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">transform_to_dict</span><span class="p">(</span><span class="n">train_data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">train_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">train_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+    
+<span class="n">train_shards</span> <span class="o">=</span> <span class="n">train_shards</span><span class="o">.</span><span class="n">transform_shard</span><span class="p">(</span><span class="n">transform_to_dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In essence, an <code class="docutils literal notranslate"><span class="pre">XShards</span></code> contains an automatically sharded (or partitioned) Python object (e.g., Pandas Dataframe, Numpy NDArray,  Python Dictionary or List, etc.). Each partition of the <code class="docutils literal notranslate"><span class="pre">XShards</span></code> stores a subset of the Python object and is distributed across different nodes in the cluster; and the user may run arbitrary Python codes on each partition in a data-parallel fashion using <code class="docutils literal notranslate"><span class="pre">XShards.transform_shard</span></code>.</p>
+<p>View the related <a class="reference external" href="./data">Python API doc</a> for more details.</p>
+<div class="section" id="data-parallel-pandas">
+<h3><strong>3.1 Data-Parallel Pandas</strong><a class="headerlink" href="#data-parallel-pandas" title="Permalink to this headline">¶</a></h3>
+<p>The user may use <code class="docutils literal notranslate"><span class="pre">XShards</span></code> to efficiently process large-size Pandas Dataframes in a distributed and data-parallel fashion.</p>
+<p>First, the user can read CVS, JSON or Parquet files (stored on local disk, HDFS, AWS S3, etc.) to obtain an <code class="docutils literal notranslate"><span class="pre">XShards</span></code> of Pandas Dataframe, as shown below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">zoo.orca.data.pandas</span> <span class="kn">import</span> <span class="n">read_csv</span>
+<span class="n">csv_path</span> <span class="o">=</span> <span class="s2">&quot;/path/to/csv_file_or_folder&quot;</span>
+<span class="n">shard</span> <span class="o">=</span> <span class="n">read_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Each partition of the returned <code class="docutils literal notranslate"><span class="pre">XShards</span></code> stores a Pandas Dataframe object (containing a subset of the entire dataset), and then the user can apply Pandas operations as well as other (e.g., sklearn) operations on each partition, as shown below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">negative</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">column_name</span><span class="p">):</span>
+    <span class="n">df</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column_name</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+    
+<span class="n">train_shards</span> <span class="o">=</span> <span class="n">shard</span><span class="o">.</span><span class="n">transform_shard</span><span class="p">(</span><span class="n">negative</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In addition, some global operations  (such as <code class="docutils literal notranslate"><span class="pre">partition_by</span></code>, <code class="docutils literal notranslate"><span class="pre">unique</span></code>, etc.) are also supported on the <code class="docutils literal notranslate"><span class="pre">XShards</span></code> of Pandas Dataframe, as shown below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">shard</span><span class="o">.</span><span class="n">partition_by</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="s2">&quot;location&quot;</span><span class="p">,</span> <span class="n">num_partitions</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">location_list</span> <span class="o">=</span> <span class="n">shard</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="distributed-training-inference.html" class="btn btn-neutral float-right" title="Distributed Training and Inference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="orca-context.html" class="btn btn-neutral float-left" title="Orca Context" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Analytice Zoo
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
