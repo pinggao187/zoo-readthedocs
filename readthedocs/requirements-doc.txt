@@ -4,4 +4,3 @@ sphinx-click
 sphinx-jsonschema
 sphinxemoji
 click
-

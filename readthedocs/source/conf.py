@@ -47,8 +47,8 @@ source_suffix = {'.rst': 'restructuredtext',
 master_doc = 'index'
 
 project = 'Analytics Zoo'
-copyright = '2020, Analytice Zoo'
-author = 'Analytice Zoo'
+copyright = '2020, Analytics Zoo Authors'
+author = 'Analytics Zoo Authors'
 
 # The short X.Y version
 #version = ''
@@ -124,7 +124,7 @@ exclude_patterns = ['_build']
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Custom sidebar templates, must be a dictionary that maps document names
+# Custom sidebar templates, must be a dictionary that maps document namesan
 # to template names.
 #
 # The default sidebars (for documents that don't match any pattern) are
@@ -175,7 +175,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'Analytics Zoo', 'Analytics Zoo Documentation',
+    (master_doc, 'analytics-zoo', 'analytics-zoo Documentation',
      [author], 1)
 ]
 
@@ -208,4 +208,3 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-

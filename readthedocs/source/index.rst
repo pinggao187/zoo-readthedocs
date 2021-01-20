@@ -3,7 +3,7 @@ Analytics Zoo Documentation
 
 ------
 
-Analytics Zoo is an open source Big Data AI platform (for distributed TensorFlow, PyTorch and keras on Apache Spark & Ray).
+**Analytics Zoo is an open source Big Data AI platform (for distributed TensorFlow, PyTorch and keras on Apache Spark & Ray).**
 
 -------
 
@@ -21,13 +21,6 @@ Analytics Zoo includes the **Orca** library that seamlessly scale out your singl
    doc/Orca/QuickStart/orca-tf2keras-quickstart.md
    doc/Orca/QuickStart/orca-mxnet-quickstart.md
    doc/Orca/QuickStart/orca-horovod-quickstart.md
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Release
-
-   doc/release-download.md
-
 
 .. toctree::
    :maxdepth: 1
@@ -57,3 +50,9 @@ Analytics Zoo includes the **Orca** library that seamlessly scale out your singl
    
    doc/api/api.md
    
+.. toctree::
+   :maxdepth: 1
+   :caption: Real-World Applications
+   
+   doc/Application/presentations.md
+   doc/Application/powered-by.md  

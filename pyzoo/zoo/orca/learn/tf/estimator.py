@@ -17,16 +17,15 @@ from pyspark.sql import DataFrame
 
 from bigdl.optim.optimizer import MaxEpoch
 
-from zoo.tfpark.tf_dataset import TFNdarrayDataset
-from zoo.tfpark.tf_dataset import _standarize_feature_label_dataset
 from zoo.tfpark.tf_dataset import _standardize_keras_target_data
-
 from zoo.common.utils import load_from_file
+from zoo.orca import OrcaContext
 from zoo.orca.data.tf.data import Dataset, TFDataDataset2
 from zoo.orca.data import SparkXShards
 from zoo.orca.learn.tf.utils import *
 from zoo.orca.learn.trigger import Trigger
-from zoo.orca.learn.utils import find_latest_checkpoint, convert_predict_to_xshard
+from zoo.orca.learn.utils import find_latest_checkpoint, convert_predict_rdd_to_xshard, \
+    convert_predict_rdd_to_dataframe
 from zoo.tfpark import KerasModel
 from zoo.tfpark import TFOptimizer, TFNet, ZooOptimizer
 from zoo.tfpark.tf_optimizer import StatelessMetric
@@ -37,7 +36,7 @@ from zoo.orca.learn.spark_estimator import Estimator as SparkEstimator
 
 
 class Estimator(SparkEstimator):
-    def fit(self, data, epochs, batch_size=32, feature_cols=None, labels_cols=None,
+    def fit(self, data, epochs, batch_size=32, feature_cols=None, label_cols=None,
             validation_data=None, hard_code_batch_size=False, session_config=None,
             checkpoint_trigger=None, auto_shard_files=False):
         raise NotImplementedError
@@ -46,7 +45,7 @@ class Estimator(SparkEstimator):
                 auto_shard_files=False):
         raise NotImplementedError
 
-    def evaluate(self, data, batch_size=32, feature_cols=None, labels_cols=None,
+    def evaluate(self, data, batch_size=32, feature_cols=None, label_cols=None,
                  hard_code_batch_size=False, auto_shard_files=False):
         raise NotImplementedError
 
@@ -255,8 +254,8 @@ def is_tf_data_dataset(data):
 
 
 def to_dataset(data, batch_size, batch_per_thread, validation_data,
-               feature_cols, labels_cols, hard_code_batch_size,
-               sequential_order, shuffle, auto_shard_files):
+               feature_cols, label_cols, hard_code_batch_size,
+               sequential_order, shuffle, auto_shard_files, memory_type="DRAM"):
     # todo wrap argument into kwargs
     if validation_data:
         if isinstance(data, SparkXShards):
@@ -278,6 +277,7 @@ def to_dataset(data, batch_size, batch_per_thread, validation_data,
                                         batch_per_thread,
                                         validation_data,
                                         hard_code_batch_size=hard_code_batch_size,
+                                        memory_type=memory_type,
                                         sequential_order=sequential_order,
                                         shuffle=shuffle)
     elif isinstance(data, Dataset):
@@ -285,11 +285,12 @@ def to_dataset(data, batch_size, batch_per_thread, validation_data,
                                  batch_per_thread=batch_per_thread,
                                  validation_dataset=validation_data)
     elif isinstance(data, DataFrame):
-        dataset = TFDataset.from_dataframe(data, feature_cols, labels_cols,
+        dataset = TFDataset.from_dataframe(data, feature_cols, label_cols,
                                            batch_size,
                                            batch_per_thread,
                                            hard_code_batch_size,
                                            validation_data,
+                                           memory_type,
                                            sequential_order,
                                            shuffle
                                            )
@@ -372,7 +373,7 @@ class TensorFlowEstimator(Estimator):
             epochs=1,
             batch_size=32,
             feature_cols=None,
-            labels_cols=None,
+            label_cols=None,
             validation_data=None,
             hard_code_batch_size=False,
             session_config=None,
@@ -390,7 +391,7 @@ class TensorFlowEstimator(Estimator):
         :param epochs: number of epochs to train.
         :param batch_size: total batch size for each iteration.
         :param feature_cols: feature column names if train data is Spark DataFrame.
-        :param labels_cols: label column names if train data is Spark DataFrame.
+        :param label_cols: label column names if train data is Spark DataFrame.
         :param validation_data: validation data. Validation data type should be the same
         as train data.
         :param hard_code_batch_size: whether hard code batch size for training. Default is False.
@@ -416,18 +417,20 @@ class TensorFlowEstimator(Estimator):
         if isinstance(data, DataFrame):
             assert feature_cols is not None, \
                 "feature columns is None; it should not be None in training"
-            assert labels_cols is not None, \
+            assert label_cols is not None, \
                 "label columns is None; it should not be None in training"
 
         if checkpoint_trigger is not None:
             checkpoint_trigger = Trigger.convert_trigger(checkpoint_trigger)
 
+        memory_type = OrcaContext.train_data_store
         dataset = to_dataset(data, batch_size=batch_size, batch_per_thread=-1,
                              validation_data=validation_data,
-                             feature_cols=feature_cols, labels_cols=labels_cols,
+                             feature_cols=feature_cols, label_cols=label_cols,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=False, shuffle=True,
-                             auto_shard_files=auto_shard_files
+                             auto_shard_files=auto_shard_files,
+                             memory_type=memory_type
                              )
 
         if feed_dict is not None:
@@ -500,7 +503,7 @@ class TensorFlowEstimator(Estimator):
 
         dataset = to_dataset(data, batch_size=-1, batch_per_thread=batch_size,
                              validation_data=None,
-                             feature_cols=feature_cols, labels_cols=None,
+                             feature_cols=feature_cols, label_cols=None,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=True,
                              shuffle=False,
@@ -512,15 +515,15 @@ class TensorFlowEstimator(Estimator):
         tfnet = TFNet.from_session(sess=self.sess, inputs=flat_inputs, outputs=flat_outputs)
         predicted_rdd = tfnet.predict(dataset)
         if isinstance(data, DataFrame):
-            return convert_predict_to_dataframe(data, predicted_rdd)
-        elif isinstance(data, SparkXShards) or isinstance(data, tf.data.Dataset):
-            return convert_predict_to_xshard(predicted_rdd)
+            return convert_predict_rdd_to_dataframe(data, predicted_rdd)
+        elif isinstance(data, SparkXShards):
+            return convert_predict_rdd_to_xshard(data, predicted_rdd)
         else:
             return predicted_rdd
 
     def evaluate(self, data, batch_size=32,
                  feature_cols=None,
-                 labels_cols=None,
+                 label_cols=None,
                  hard_code_batch_size=False,
                  auto_shard_files=False,
                  ):
@@ -532,8 +535,8 @@ class TensorFlowEstimator(Estimator):
          label numpy arrays}
         If data is tf.data.Dataset, each element is a tuple of input tensors.
         :param batch_size: batch size per thread.
-        :param feature_cols: feature_cols: feature column names if train data is Spark DataFrame.
-        :param labels_cols: label column names if train data is Spark DataFrame.
+        :param feature_cols: feature_cols: feature column names if data is Spark DataFrame.
+        :param label_cols: label column names if data is Spark DataFrame.
         :param hard_code_batch_size: whether to hard code batch size for evaluation.
         :return: evaluation result as a dictionary of {'metric name': metric value}
         """
@@ -544,12 +547,12 @@ class TensorFlowEstimator(Estimator):
         if isinstance(data, DataFrame):
             assert feature_cols is not None, \
                 "feature columns is None; it should not be None in evaluation"
-            assert labels_cols is not None, \
+            assert label_cols is not None, \
                 "label columns is None; it should not be None in evaluation"
 
         dataset = to_dataset(data, batch_size=-1, batch_per_thread=batch_size,
                              validation_data=None,
-                             feature_cols=feature_cols, labels_cols=labels_cols,
+                             feature_cols=feature_cols, label_cols=label_cols,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=True,
                              shuffle=False,
@@ -602,12 +605,12 @@ class KerasEstimator(Estimator):
             epochs=1,
             batch_size=32,
             feature_cols=None,
-            labels_cols=None,
+            label_cols=None,
             validation_data=None,
             hard_code_batch_size=False,
             session_config=None,
             checkpoint_trigger=None,
-            auto_shard_files=False,
+            auto_shard_files=True
             ):
         """
         Train this keras model with train data.
@@ -619,7 +622,7 @@ class KerasEstimator(Estimator):
         :param epochs: number of epochs to train.
         :param batch_size: total batch size for each iteration.
         :param feature_cols: feature column names if train data is Spark DataFrame.
-        :param labels_cols: label column names if train data is Spark DataFrame.
+        :param label_cols: label column names if train data is Spark DataFrame.
         :param validation_data: validation data. Validation data type should be the same
         as train data.
         :param hard_code_batch_size: whether hard code batch size for training. Default is False.
@@ -632,7 +635,7 @@ class KerasEstimator(Estimator):
         if isinstance(data, DataFrame):
             assert feature_cols is not None, \
                 "feature columns is None; it should not be None in training"
-            assert labels_cols is not None, \
+            assert label_cols is not None, \
                 "label columns is None; it should not be None in training"
 
         if isinstance(data, tf.data.Dataset):
@@ -655,15 +658,14 @@ class KerasEstimator(Estimator):
             data = data.map(_standardize_keras_target_data)
             validation_data = validation_data.map(_standardize_keras_target_data)
 
+        memory_type = OrcaContext.train_data_store
         dataset = to_dataset(data, batch_size=batch_size, batch_per_thread=-1,
                              validation_data=validation_data,
-                             feature_cols=feature_cols, labels_cols=labels_cols,
+                             feature_cols=feature_cols, label_cols=label_cols,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=False, shuffle=True,
-                             auto_shard_files=auto_shard_files)
-
-        if isinstance(dataset, TFNdarrayDataset):
-            dataset = _standarize_feature_label_dataset(dataset, self.model.model)
+                             auto_shard_files=auto_shard_files,
+                             memory_type=memory_type)
 
         self.tf_optimizer = TFOptimizer.from_keras(self.model.model, dataset,
                                                    model_dir=self.model.model_dir,
@@ -715,9 +717,12 @@ class KerasEstimator(Estimator):
             assert feature_cols is not None, \
                 "feature columns is None; it should not be None in prediction"
 
+        assert not is_tf_data_dataset(data), "tf.data.Dataset currently cannot be used for" \
+                                             "estimator prediction"
+
         dataset = to_dataset(data, batch_size=-1, batch_per_thread=batch_size,
                              validation_data=None,
-                             feature_cols=feature_cols, labels_cols=None,
+                             feature_cols=feature_cols, label_cols=None,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=True, shuffle=False,
                              auto_shard_files=auto_shard_files,
@@ -725,15 +730,15 @@ class KerasEstimator(Estimator):
 
         predicted_rdd = self.model.predict(dataset, batch_size)
         if isinstance(data, DataFrame):
-            return convert_predict_to_dataframe(data, predicted_rdd)
-        elif isinstance(data, SparkXShards) or isinstance(data, tf.data.Dataset):
-            return convert_predict_to_xshard(predicted_rdd)
+            return convert_predict_rdd_to_dataframe(data, predicted_rdd)
+        elif isinstance(data, SparkXShards):
+            return convert_predict_rdd_to_xshard(data, predicted_rdd)
         else:
             return predicted_rdd
 
     def evaluate(self, data, batch_size=32,
                  feature_cols=None,
-                 labels_cols=None,
+                 label_cols=None,
                  hard_code_batch_size=False,
                  auto_shard_files=False
                  ):
@@ -746,7 +751,7 @@ class KerasEstimator(Estimator):
         If data is tf.data.Dataset, each element is [feature tensor tuple, label tensor tuple]
         :param batch_size: batch size per thread.
         :param feature_cols: feature_cols: feature column names if train data is Spark DataFrame.
-        :param labels_cols: label column names if train data is Spark DataFrame.
+        :param label_cols: label column names if train data is Spark DataFrame.
         :param hard_code_batch_size: whether to hard code batch size for evaluation.
         :return: evaluation result as a dictionary of {'metric name': metric value}
         """
@@ -754,12 +759,12 @@ class KerasEstimator(Estimator):
         if isinstance(data, DataFrame):
             assert feature_cols is not None, \
                 "feature columns is None; it should not be None in evaluation"
-            assert labels_cols is not None, \
+            assert label_cols is not None, \
                 "label columns is None; it should not be None in evaluation"
 
         dataset = to_dataset(data, batch_size=-1, batch_per_thread=batch_size,
                              validation_data=None,
-                             feature_cols=feature_cols, labels_cols=labels_cols,
+                             feature_cols=feature_cols, label_cols=label_cols,
                              hard_code_batch_size=hard_code_batch_size,
                              sequential_order=True, shuffle=False,
                              auto_shard_files=auto_shard_files
@@ -771,7 +776,7 @@ class KerasEstimator(Estimator):
         self.model.save_model(path, overwrite=overwrite)
 
     def get_model(self):
-        raise NotImplementedError
+        return self.model.model
 
     def save(self, model_path, overwrite=True):
         self.save_keras_model(model_path, overwrite=True)
