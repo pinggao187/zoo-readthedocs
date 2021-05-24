@@ -9,7 +9,7 @@ Currently, Analytics Zoo releases are hosted on maven central; here's an example
 ```xml
 <dependency>
     <groupId>com.intel.analytics.zoo</groupId>
-    <artifactId>analytics-zoo-bigdl_0.12.1-[spark_2.1.1|spark_2.2.0|spark_2.3.1|spark_2.4.3|spark_3.0.0]</artifactId>
+    <artifactId>analytics-zoo-bigdl_0.12.2-[spark_2.1.1|spark_2.2.0|spark_2.3.1|spark_2.4.3|spark_3.0.0]</artifactId>
     <version>${ANALYTICS_ZOO_VERSION}</version>
 </dependency>
 ```
@@ -17,7 +17,7 @@ You can find the latest ANALYTICS_ZOO_VERSION [here](https://search.maven.org/se
 
 SBT developers can use
 ```sbt
-libraryDependencies += "com.intel.analytics.zoo" % "analytics-zoo-bigdl_0.12.1-[spark_2.1.1|spark_2.2.0|spark_2.3.1|spark_2.4.3|spark_3.0.0]" % "${ANALYTICS_ZOO_VERSION}"
+libraryDependencies += "com.intel.analytics.zoo" % "analytics-zoo-bigdl_0.12.2-[spark_2.1.1|spark_2.2.0|spark_2.3.1|spark_2.4.3|spark_3.0.0]" % "${ANALYTICS_ZOO_VERSION}"
 ```
 
 Remarks:
@@ -25,6 +25,14 @@ Remarks:
 - Please choose the available suffix above according to your Spark platform you want to use.
 - You don't need to add the BigDL dependency to your project as it has already been packaged within Analytics Zoo.
 - You can find the option `${ANALYTICS_ZOO_VERSION}` from the [Release Page](../release-download.md).
+- For mac users, it's recommend to add `zoo-core-mkl-mac` to the dependency.
+  eg. For mac SBT users,
+  ```sbt
+  libraryDependencies ++= Seq(
+  "com.intel.analytics.zoo" % "analytics-zoo-bigdl_0.12.2-spark_2.4.3" % "0.11.0-SNAPSHOT",
+  "com.intel.analytics.zoo" % "zoo-core-mkl-mac" % "0.11.0-SNAPSHOT"
+  )
+  ```
 
 ---
 ## **Link with a development version**
@@ -78,7 +86,7 @@ When compiling with Java 7, you need to add the option “-XX:MaxPermSize=1G”.
 
 ## **Build with script (Recommended)**
 
-It is highly recommended that you build Analytics Zoo using the [make-dist.sh script](https://github.com/intel-analytics/analytics-zoo/blob/master/make-dist.sh). And it will handle the MAVEN_OPTS variable.
+It is highly recommended that you build Analytics Zoo using the [make-dist.sh script](https://github.com/intel-analytics/analytics-zoo/blob/master/zoo/make-dist.sh). And it will handle the MAVEN_OPTS variable.
 
 Once downloaded, you can build Analytics Zoo with the following commands:
 ```bash
@@ -103,7 +111,7 @@ To build Analytics Zoo directly using Maven, run the command below:
 ```bash
 $ mvn clean package -DskipTests
 ```
-After that, you can find that jar packages in `PATH_TO_ANALYTICS_ZOO`/target/, where `PATH_TO_ANALYTICS_ZOO` is the path to the directory of the Analytics Zoo.
+After that, you can find that jar packages in `PATH_TO_ANALYTICS_ZOO`/zoo/target/, where `PATH_TO_ANALYTICS_ZOO` is the path to the directory of the Analytics Zoo.
 
 Note that the instructions above will build Analytics Zoo with Spark 2.1.0 for Linux. Similarly, you may customize spark version like [above](#build-with-spark-version).
 
