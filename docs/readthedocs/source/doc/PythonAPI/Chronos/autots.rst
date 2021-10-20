@@ -9,7 +9,7 @@ AutoTSTrainer
 
 AutoTSTrainer trains a time series pipeline (including data processing, feature engineering, and model) with AutoML.
 
-.. autoclass:: zoo.chronos.autots.deprecated.forecast.AutoTSTrainer
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.forecast.AutoTSTrainer
     :members:
     :show-inheritance:
 
@@ -19,7 +19,7 @@ TSPipeline
 
 A pipeline for time series forecasting.
 
-.. autoclass:: zoo.chronos.autots.deprecated.forecast.TSPipeline
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.forecast.TSPipeline
     :members:
     :show-inheritance:
 
@@ -29,58 +29,58 @@ Recipe
 
 Recipe is used for search configuration for AutoTSTrainer.
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.SmokeRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.SmokeRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.MTNetSmokeRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.MTNetSmokeRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.TCNSmokeRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.TCNSmokeRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.PastSeqParamHandler
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.PastSeqParamHandler
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.GridRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.GridRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.LSTMSeq2SeqRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.LSTMSeq2SeqRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.LSTMGridRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.LSTMGridRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.Seq2SeqRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.Seq2SeqRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.MTNetGridRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.MTNetGridRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.TCNGridRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.TCNGridRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.RandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.RandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.BayesRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.BayesRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.XgbRegressorGridRandomRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.XgbRegressorGridRandomRecipe
     :members:
     :show-inheritance:
 
-.. autoclass:: zoo.chronos.autots.deprecated.config.recipe.XgbRegressorSkOptRecipe
+.. autoclass:: chronos.src.bigdl.chronos.autots.deprecated.config.recipe.XgbRegressorSkOptRecipe
     :members:
     :show-inheritance:
